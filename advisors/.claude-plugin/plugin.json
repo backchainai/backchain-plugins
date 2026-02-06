@@ -1,0 +1,23 @@
+{
+  "name": "advisors",
+  "description": "Team of Rivals advisory panel — four independent advisors for multi-role decision analysis",
+  "version": "1.0.0",
+  "author": {
+    "name": "Backchain",
+    "url": "https://backchain.ai"
+  },
+  "license": "MIT",
+  "keywords": [
+    "decision-analysis",
+    "advisory",
+    "team-of-rivals",
+    "strategy",
+    "risk-assessment"
+  ],
+  "category": "productivity",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/backchainai/backchain-plugins"
+  },
+  "homepage": "https://github.com/backchainai/backchain-plugins/tree/main/advisors"
+}

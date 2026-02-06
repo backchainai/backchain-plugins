@@ -1,0 +1,17 @@
+{
+  "name": "backchain-plugins",
+  "owner": {
+    "name": "Backchain"
+  },
+  "metadata": {
+    "description": "Claude Code plugins by Backchain AI — decision analysis, advisory frameworks, and AI-powered workflows",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "advisors",
+      "source": "./advisors",
+      "description": "Team of Rivals advisory panel — four specialized advisors for multi-role decision analysis"
+    }
+  ]
+}
