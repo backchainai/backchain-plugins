@@ -15,9 +15,6 @@
     "risk-assessment"
   ],
   "category": "productivity",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/backchainai/backchain-plugins"
-  },
+  "repository": "https://github.com/backchainai/backchain-plugins",
   "homepage": "https://github.com/backchainai/backchain-plugins/tree/main/advisors"
 }
