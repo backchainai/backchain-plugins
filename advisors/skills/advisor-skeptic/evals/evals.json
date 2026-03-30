@@ -3,6 +3,7 @@
   "evals": [
     {
       "id": 1,
+      "slug": "eval-career-decision",
       "prompt": "Should I quit my stable $180K engineering job to start an AI consulting practice? I have 6 months of savings, a mortgage, and two school-age kids.",
       "expected_output": "A skeptical analysis that identifies the most likely failure modes, grounds projections in base rates for consulting startups, exposes hidden assumptions about runway and income replacement, and defines specific kill conditions.",
       "assertions": [
@@ -17,6 +18,7 @@
     },
     {
       "id": 2,
+      "slug": "eval-content-writers",
       "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
       "expected_output": "A skeptical analysis that questions the 1/10th cost claim, identifies failure modes around quality and client retention, and grounds the decision in evidence about AI content quality and SEO performance.",
       "assertions": [
@@ -31,6 +33,7 @@
     },
     {
       "id": 3,
+      "slug": "eval-saas-pivot",
       "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
       "expected_output": "A skeptical analysis that examines pivot success base rates, questions the assumption that AI-native is the right direction, identifies the most likely failure mode for the pivot, and maps what evidence would be needed to justify it.",
       "assertions": [

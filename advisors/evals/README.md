@@ -69,27 +69,64 @@ The `runs/` vs `analysis/` split keeps raw outputs (per-run, mechanical) separat
 
 ## Running evals
 
-Each eval runs twice — **with the skill** (structured framework) and **without** (baseline) — to measure what the skill adds.
+### Prerequisites
 
-**Individual advisor (with skill):**
+- [uv](https://docs.astral.sh/uv/) installed
+- `ANTHROPIC_API_KEY` set in environment or in `advisors/evals/.env`
+
+### Quick start
+
+All commands run from the **repo root** (`backchain-plugins/`):
+
+```bash
+# Run all skills, all scenarios, with grading
+uv run --project advisors/evals run_evals.py
+
+# Single skill, single scenario
+uv run --project advisors/evals run_evals.py --skill advisor-visionary --scenario eval-career-decision
+
+# Collect outputs without grading (faster, review manually)
+uv run --project advisors/evals run_evals.py --skip-grading
+
+# Grade an existing iteration's outputs
+uv run --project advisors/evals run_evals.py --grade-only --iteration abc1234
+
+# Use a different model
+uv run --project advisors/evals run_evals.py --model claude-opus-4-6
 ```
-# Spawn a subagent with the SKILL.md content + test prompt
-# Output → advisors-workspace/iteration-N/runs/advisor-{role}/eval-{slug}/with_skill/
+
+Or from `advisors/evals/` directly:
+
+```bash
+uv run run_evals.py --skill advisor-visionary --scenario eval-career-decision
 ```
 
-**Individual advisor (without skill / baseline):**
-```
-# Spawn a subagent with just: "You are a {role} advisor. Analyze this decision."
-# Output → advisors-workspace/iteration-N/runs/advisor-{role}/eval-{slug}/without_skill/
-```
+### CLI options
 
-**Advisory panel:** Same pattern — with the panel skill vs. a generic "multi-perspective analysis" prompt. Panel runs additionally populate `extracted/` with individual advisor sections parsed from the output.
+| Option | Description |
+|--------|-------------|
+| `--skill SKILL` | Filter to skill(s) (repeatable) |
+| `--scenario SLUG` | Filter to scenario slug(s) (repeatable) |
+| `--iteration HASH` | Iteration ID (default: current git shorthash) |
+| `--force` | Overwrite existing iteration directory |
+| `--skip-grading` | Collect outputs only, skip grading |
+| `--grade-only` | Grade existing iteration without re-running |
+| `--model MODEL` | Override model for assessment runs |
+| `--grading-model MODEL` | Override model for grading |
+| `--config PATH` | Config file (default: `advisors/evals/config.yaml`) |
+| `--verbose` | Print claude responses to stderr |
 
-## Grading
+### How it works
 
-Assertions in each `evals.json` define pass/fail criteria. Grade using LLM-as-judge (provide output + assertions, evaluate each as PASS/FAIL with evidence) or programmatic pattern matching for structural checks.
+Each eval runs twice per scenario — **with the skill** (SKILL.md injected as system prompt) and **without** (baseline prompt from config.yaml). Both use `claude --bare` for clean-room isolation: no hooks, no plugins, no CLAUDE.md auto-discovery.
 
-Per-run results go in `grading.json` alongside each run's output. Cross-cutting analysis goes in the `analysis/` directory.
+Iterations are keyed by git shorthash. If skill files have uncommitted changes, the iteration is suffixed with `-dirty` and a warning is printed.
+
+### Grading
+
+Assertions in each skill's `evals/evals.json` define pass/fail criteria. The runner grades each output using `claude --bare` with `--json-schema` to enforce structured results: per-assertion PASS/FAIL with evidence.
+
+Per-run results go in `grading.json` alongside each run's output. The runner aggregates all results into `benchmark.json` and prints a summary table.
 
 ## Test scenarios
 

@@ -3,6 +3,7 @@
   "evals": [
     {
       "id": 1,
+      "slug": "eval-career-decision",
       "prompt": "Should I quit my stable $180K engineering job to start an AI consulting practice? I have 6 months of savings, a mortgage, and two school-age kids.",
       "expected_output": "A full advisory panel analysis with all four advisor perspectives (visionary, skeptic, operator, ethicist) followed by a synthesis with areas of agreement, disagreement, critical callouts, and a risk-adjusted recommendation.",
       "assertions": [
@@ -20,6 +21,7 @@
     },
     {
       "id": 2,
+      "slug": "eval-content-writers",
       "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
       "expected_output": "A full advisory panel analysis with genuine disagreement between advisors (e.g., visionary sees opportunity while ethicist raises concerns about the writers), synthesized into a nuanced recommendation.",
       "assertions": [
@@ -36,6 +38,7 @@
     },
     {
       "id": 3,
+      "slug": "eval-saas-pivot",
       "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
       "expected_output": "A full advisory panel analysis where all four frameworks engage at full depth with the business context, producing a synthesis that genuinely weighs the pivot vs. double-down trade-offs.",
       "assertions": [

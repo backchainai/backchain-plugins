@@ -3,6 +3,7 @@
   "evals": [
     {
       "id": 1,
+      "slug": "eval-career-decision",
       "prompt": "Should I quit my stable $180K engineering job to start an AI consulting practice? I have 6 months of savings, a mortgage, and two school-age kids.",
       "expected_output": "An ethical analysis that maps stakeholder impacts (family, current employer, future clients), applies moral frameworks to the tension between personal ambition and family obligations, and assesses long-term consequences for all affected parties.",
       "assertions": [
@@ -17,6 +18,7 @@
     },
     {
       "id": 2,
+      "slug": "eval-content-writers",
       "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
       "expected_output": "An ethical analysis that centers the impact on the writers being displaced, applies moral frameworks to the cost-savings-vs-livelihoods tension, and considers the broader implications of AI replacing knowledge workers.",
       "assertions": [
@@ -31,6 +33,7 @@
     },
     {
       "id": 3,
+      "slug": "eval-saas-pivot",
       "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
       "expected_output": "An ethical analysis that maps impacts on existing customers, the engineering team, and other stakeholders, applies moral frameworks to the pivot decision, and considers the obligations created by existing customer relationships.",
       "assertions": [

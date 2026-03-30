@@ -13,3 +13,7 @@ Thumbs.db
 
 # Eval workspaces (ephemeral results from skill evaluation runs)
 advisors-workspace/
+
+# Eval tooling
+advisors/evals/.venv/
+advisors/evals/.env
