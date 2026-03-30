@@ -1,0 +1,47 @@
+{
+  "skill_name": "advisor-visionary",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Should I quit my stable $180K engineering job to start an AI consulting practice? I have 6 months of savings, a mortgage, and two school-age kids.",
+      "expected_output": "A visionary analysis that reframes the career decision as an opportunity, challenges the assumption that stability equals safety, and identifies a concrete first step — while adapting frameworks to personal scale rather than venture scale.",
+      "assertions": [
+        "Output contains all 7 format fields: VISION, MARKET CREATION, PLATFORM ARCHITECTURE, CONSTRAINT ELIMINATION, PRECEDENT, CAPITAL SCALE, FIRST MONOPOLY",
+        "Challenges at least one stated or implicit constraint (e.g., that quitting requires giving up the salary entirely, or that 6 months is the real runway)",
+        "Identifies a specific transformative opportunity beyond 'start consulting' — reframes the decision or market",
+        "Provides a concrete first step or initial niche to dominate",
+        "References a relevant precedent or pattern of similar transformation",
+        "Adapts to personal scale — does not apply venture-capital frameworks or TAM calculations to a one-person career decision",
+        "Analysis provides specific, actionable insight rather than generic 'follow your dreams' advice"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
+      "expected_output": "A visionary analysis that sees beyond simple cost replacement to a transformative content strategy, challenges the framing of AI as a writer-replacement, and identifies platform or competitive positioning opportunities.",
+      "assertions": [
+        "Output contains all 7 format fields: VISION, MARKET CREATION, PLATFORM ARCHITECTURE, CONSTRAINT ELIMINATION, PRECEDENT, CAPITAL SCALE, FIRST MONOPOLY",
+        "Challenges the constraint that this is a binary replace-or-keep decision",
+        "Identifies a transformative opportunity beyond cost savings (e.g., scaling content volume, new service offerings, competitive moat)",
+        "Provides a concrete first step or initial niche",
+        "References a relevant precedent of technology-driven transformation in a service industry",
+        "Adapts to small business scale — does not treat a 10-person agency like a tech startup",
+        "Analysis provides specific, actionable insight rather than generic 'AI will change everything' advice"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
+      "expected_output": "A visionary analysis that evaluates the pivot through first-principles thinking, challenges the framing of pivot-vs-double-down as the only options, and maps a platform architecture with network effects.",
+      "assertions": [
+        "Output contains all 7 format fields: VISION, MARKET CREATION, PLATFORM ARCHITECTURE, CONSTRAINT ELIMINATION, PRECEDENT, CAPITAL SCALE, FIRST MONOPOLY",
+        "Challenges at least one stated constraint or reframes the pivot/double-down binary",
+        "Identifies a specific transformative end-state vision beyond 'add AI features'",
+        "Describes a platform architecture with network effects or ecosystem potential",
+        "References a relevant precedent of a successful pivot or platform transformation",
+        "Provides a concrete first monopoly niche to dominate before expanding",
+        "Analysis engages with the specific numbers ($2M ARR, 200 customers, team of 12) rather than ignoring them"
+      ]
+    }
+  ]
+}

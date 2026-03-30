@@ -10,3 +10,6 @@ Thumbs.db
 
 # Beads (development only)
 .beads/
+
+# Eval workspaces (ephemeral results from skill evaluation runs)
+advisors-workspace/
