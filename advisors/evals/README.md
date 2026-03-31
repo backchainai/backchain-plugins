@@ -4,7 +4,7 @@ Each skill has an `evals/evals.json` following the [agentskills.io evaluation sp
 
 ## Workspace structure
 
-Eval results are ephemeral and gitignored. The workspace extends the agentskills.io single-skill pattern to handle multiple skills and a meta-skill (the panel).
+The workspace extends the agentskills.io single-skill eval pattern to handle multiple embedded skills and an orchestrator skill (advisory-panel). Eval results are ephemeral and gitignored. 
 
 ```
 advisors-workspace/
@@ -13,7 +13,7 @@ advisors-workspace/
     │   # Per-skill runs — one directory per skill, one subdirectory per scenario
     ├── runs/
     │   ├── advisor-visionary/
-    │   │   ├── eval-career-decision/
+    │   │   ├── eval-boat-rental/
     │   │   │   ├── with_skill/
     │   │   │   │   ├── output.md          # Raw advisor output
     │   │   │   │   ├── timing.json        # { total_tokens, duration_ms }
@@ -30,7 +30,7 @@ advisors-workspace/
     │   │
     │   │   # Panel runs include extracted advisor sections for cross-comparison
     │   └── advisory-panel/
-    │       └── eval-career-decision/
+    │       └── eval-boat-rental/
     │           ├── with_skill/
     │           │   ├── output.md          # Full panel output (all 4 advisors + synthesis)
     │           │   ├── extracted/         # Advisor sections parsed from panel output
@@ -83,7 +83,7 @@ All commands run from the **repo root** (`backchain-plugins/`):
 uv run --project advisors/evals run_evals.py
 
 # Single skill, single scenario
-uv run --project advisors/evals run_evals.py --skill advisor-visionary --scenario eval-career-decision
+uv run --project advisors/evals run_evals.py --skill advisor-visionary --scenario eval-boat-rental
 
 # Collect outputs without grading (faster, review manually)
 uv run --project advisors/evals run_evals.py --skip-grading
@@ -98,7 +98,7 @@ uv run --project advisors/evals run_evals.py --model claude-opus-4-6
 Or from `advisors/evals/` directly:
 
 ```bash
-uv run run_evals.py --skill advisor-visionary --scenario eval-career-decision
+uv run run_evals.py --skill advisor-visionary --scenario eval-boat-rental
 ```
 
 ### CLI options
@@ -132,6 +132,6 @@ Per-run results go in `grading.json` alongside each run's output. The runner agg
 
 | # | Slug | Scenario | Tests |
 |---|------|----------|-------|
-| 1 | `eval-career-decision` | Quit job to start AI consulting (personal) | Scale adaptation, ethical tension, operational realities |
+| 1 | `eval-boat-rental` | Start boat rental business on popular lake ($50K, no experience) | Seasonal business dynamics, safety/environmental ethics, platform vs asset play |
 | 2 | `eval-content-writers` | Replace content writers with AI (small biz) | Job displacement ethics, quality risks, transition planning |
 | 3 | `eval-saas-pivot` | Pivot B2B SaaS to AI-native ($2M ARR) | Full-framework depth, genuine inter-advisor disagreement |

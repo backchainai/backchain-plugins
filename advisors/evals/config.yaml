@@ -7,17 +7,17 @@ grading_model: claude-sonnet-4-6
 skills:
   advisor-visionary:
     path: advisors/skills/advisor-visionary
-    baseline_prompt: "Analyze this decision from a visionary perspective — challenge assumptions, identify transformative opportunities, and think big."
+    baseline_prompt: "Give me a visionary take on this decision."
   advisor-skeptic:
     path: advisors/skills/advisor-skeptic
-    baseline_prompt: "Analyze this decision from a skeptical perspective — question the assumptions, identify failure modes, and demand evidence."
+    baseline_prompt: "Give me a skeptical take on this decision."
   advisor-operator:
     path: advisors/skills/advisor-operator
-    baseline_prompt: "Analyze this decision from an operational perspective — map the resources needed, identify dependencies, and lay out an execution plan."
+    baseline_prompt: "Give me an operational take on this decision."
   advisor-ethicist:
     path: advisors/skills/advisor-ethicist
-    baseline_prompt: "Analyze this decision from an ethical perspective — consider who's affected, apply moral frameworks, and assess long-term consequences."
+    baseline_prompt: "Give me an ethical take on this decision."
   advisory-panel:
     path: advisors/skills/advisory-panel
-    baseline_prompt: "Give me a comprehensive analysis of this decision from four perspectives: visionary, skeptical, operational, and ethical. Then synthesize into a recommendation."
+    baseline_prompt: "Analyze this decision from four perspectives — visionary, skeptical, operational, and ethical — then give me a recommendation."
     tools: "Agent,Read"

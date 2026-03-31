@@ -297,9 +297,19 @@ def _parse_json_response(text: str) -> dict[str, Any] | None:
     return None
 
 
+def _assertion_text(a: str | dict[str, Any]) -> str:
+    """Extract assertion text from string or object format."""
+    return a["text"] if isinstance(a, dict) else a
+
+
+def _assertion_type(a: str | dict[str, Any]) -> str:
+    """Extract assertion type from object format, default to analytical."""
+    return a.get("type", "analytical") if isinstance(a, dict) else "analytical"
+
+
 def grade_run(
     output_dir: Path,
-    assertions: list[str],
+    assertions: list[str | dict[str, Any]],
     model: str,
 ) -> dict[str, Any] | None:
     """Grade a single run's output against its assertions."""
@@ -309,7 +319,9 @@ def grade_run(
     except FileNotFoundError:
         return None
 
-    numbered = "\n".join(f"{i}. {a}" for i, a in enumerate(assertions, start=1))
+    texts = [_assertion_text(a) for a in assertions]
+    types = [_assertion_type(a) for a in assertions]
+    numbered = "\n".join(f"{i}. {t}" for i, t in enumerate(texts, start=1))
 
     # Delimit model output to reduce prompt injection risk
     grading_prompt = (
@@ -334,6 +346,11 @@ def grade_run(
     if grading is None:
         print("  ERROR: could not parse grading JSON", file=sys.stderr)
         return None
+
+    # Inject assertion types into results
+    for i, result in enumerate(grading.get("assertion_results", [])):
+        if i < len(types):
+            result["type"] = types[i]
 
     (output_dir / GRADING_FILE).write_text(json.dumps(grading, indent=2) + "\n")
     return grading

@@ -3,17 +3,17 @@
   "evals": [
     {
       "id": 1,
-      "slug": "eval-career-decision",
-      "prompt": "Should I quit my stable $180K engineering job to start an AI consulting practice? I have 6 months of savings, a mortgage, and two school-age kids.",
-      "expected_output": "A skeptical analysis that identifies the most likely failure modes, grounds projections in base rates for consulting startups, exposes hidden assumptions about runway and income replacement, and defines specific kill conditions.",
+      "slug": "eval-boat-rental",
+      "prompt": "I'm thinking about starting a boat rental business on a popular lake. I have $50K in savings, no boating industry experience, and I'd need to quit my current job to run it full-time. The lake gets about 200,000 visitors per summer season (May-September).",
+      "expected_output": "A skeptical analysis that identifies failure modes around seasonality and capital inadequacy, grounds projections in base rates for seasonal small businesses, exposes hidden assumptions about demand and costs, and defines specific kill conditions.",
       "assertions": [
-        "Output contains all 7 format fields: SKEPTIC ASSESSMENT, PRIMARY FAILURE MODE, EVIDENCE QUALITY, HIDDEN ASSUMPTIONS, BASE RATE REALITY, OUTCOME RANGE, KILL CONDITIONS",
-        "Identifies at least one specific failure mode with probability reasoning (not just 'it might fail')",
-        "References a base rate or historical evidence for consulting startup success (not fabricated statistics)",
-        "Exposes at least one hidden assumption the prompt takes for granted (e.g., that AI consulting demand will persist, that 6 months is sufficient runway)",
-        "Defines kill conditions with specific thresholds (e.g., months without revenue, savings floor)",
-        "Provides an outcome range with best/most likely/worst realistic cases",
-        "Adapts to personal scale — does not apply startup failure base rates to a consulting practice without adjustment"
+        {"text": "Output contains all 7 format fields: SKEPTIC ASSESSMENT, PRIMARY FAILURE MODE, EVIDENCE QUALITY, HIDDEN ASSUMPTIONS, BASE RATE REALITY, OUTCOME RANGE, KILL CONDITIONS", "type": "structural"},
+        {"text": "Identifies at least one specific failure mode with probability reasoning (e.g., capital depletion before second season, insurance costs exceeding projections)", "type": "analytical"},
+        {"text": "References a base rate or historical evidence for seasonal small business survival or boat rental industry margins", "type": "analytical"},
+        {"text": "Exposes at least one hidden assumption (e.g., that 200K visitors translates to demand, that $50K covers startup costs, that no experience is manageable)", "type": "analytical"},
+        {"text": "Defines kill conditions with specific thresholds (e.g., bookings per week, cash reserve floor, first-season revenue target)", "type": "analytical"},
+        {"text": "Provides an outcome range with best/most likely/worst realistic cases including the off-season cash flow gap", "type": "analytical"},
+        {"text": "Engages with the specific numbers ($50K, 200K visitors, 5-month season) to ground the analysis rather than giving generic warnings", "type": "analytical"}
       ]
     },
     {
@@ -22,13 +22,13 @@
       "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
       "expected_output": "A skeptical analysis that questions the 1/10th cost claim, identifies failure modes around quality and client retention, and grounds the decision in evidence about AI content quality and SEO performance.",
       "assertions": [
-        "Output contains all 7 format fields: SKEPTIC ASSESSMENT, PRIMARY FAILURE MODE, EVIDENCE QUALITY, HIDDEN ASSUMPTIONS, BASE RATE REALITY, OUTCOME RANGE, KILL CONDITIONS",
-        "Identifies at least one specific failure mode related to quality, client perception, or SEO impact",
-        "Challenges the '1/10th the cost' claim or identifies hidden costs not accounted for",
-        "Exposes at least one hidden assumption (e.g., that AI output quality is equivalent, that clients won't notice, that cost is the primary driver)",
-        "References evidence or base rates about AI content performance",
-        "Defines kill conditions for when to reverse the decision",
-        "Analysis demonstrates distinct skeptical perspective — not a balanced pros-and-cons list"
+        {"text": "Output contains all 7 format fields: SKEPTIC ASSESSMENT, PRIMARY FAILURE MODE, EVIDENCE QUALITY, HIDDEN ASSUMPTIONS, BASE RATE REALITY, OUTCOME RANGE, KILL CONDITIONS", "type": "structural"},
+        {"text": "Identifies at least one specific failure mode related to quality, client perception, or SEO impact", "type": "analytical"},
+        {"text": "Challenges the '1/10th the cost' claim or identifies hidden costs not accounted for", "type": "analytical"},
+        {"text": "Exposes at least one hidden assumption (e.g., that AI output quality is equivalent, that clients won't notice, that cost is the primary driver)", "type": "analytical"},
+        {"text": "References evidence or base rates about AI content performance", "type": "analytical"},
+        {"text": "Defines kill conditions for when to reverse the decision", "type": "analytical"},
+        {"text": "Analysis demonstrates distinct skeptical perspective — not a balanced pros-and-cons list", "type": "analytical"}
       ]
     },
     {
@@ -37,13 +37,13 @@
       "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
       "expected_output": "A skeptical analysis that examines pivot success base rates, questions the assumption that AI-native is the right direction, identifies the most likely failure mode for the pivot, and maps what evidence would be needed to justify it.",
       "assertions": [
-        "Output contains all 7 format fields: SKEPTIC ASSESSMENT, PRIMARY FAILURE MODE, EVIDENCE QUALITY, HIDDEN ASSUMPTIONS, BASE RATE REALITY, OUTCOME RANGE, KILL CONDITIONS",
-        "Identifies a specific failure mode for the pivot with probability reasoning",
-        "References base rates for B2B SaaS pivots or product transformations",
-        "Exposes hidden assumptions (e.g., that flat growth means the product is failing, that AI-native is what customers want, that the team can execute a pivot)",
-        "Assesses the evidence quality of the case for pivoting (Tier 1-4 classification)",
-        "Defines kill conditions with specific metrics (e.g., ARR threshold, customer churn rate, timeline)",
-        "Engages with the specific numbers ($2M ARR, 200 customers, 12 engineers) to ground the analysis"
+        {"text": "Output contains all 7 format fields: SKEPTIC ASSESSMENT, PRIMARY FAILURE MODE, EVIDENCE QUALITY, HIDDEN ASSUMPTIONS, BASE RATE REALITY, OUTCOME RANGE, KILL CONDITIONS", "type": "structural"},
+        {"text": "Identifies a specific failure mode for the pivot with probability reasoning", "type": "analytical"},
+        {"text": "References base rates for B2B SaaS pivots or product transformations", "type": "analytical"},
+        {"text": "Exposes hidden assumptions (e.g., that flat growth means the product is failing, that AI-native is what customers want, that the team can execute a pivot)", "type": "analytical"},
+        {"text": "Assesses the evidence quality of the case for pivoting (Tier 1-4 classification)", "type": "analytical"},
+        {"text": "Defines kill conditions with specific metrics (e.g., ARR threshold, customer churn rate, timeline)", "type": "analytical"},
+        {"text": "Engages with the specific numbers ($2M ARR, 200 customers, 12 engineers) to ground the analysis", "type": "analytical"}
       ]
     }
   ]

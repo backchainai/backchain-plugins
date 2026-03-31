@@ -3,17 +3,17 @@
   "evals": [
     {
       "id": 1,
-      "slug": "eval-career-decision",
-      "prompt": "Should I quit my stable $180K engineering job to start an AI consulting practice? I have 6 months of savings, a mortgage, and two school-age kids.",
-      "expected_output": "An operational analysis that maps concrete resource requirements, calculates burn rate and runway, identifies critical path to first revenue, and defines a phased transition plan — adapted to personal/solopreneur scale.",
+      "slug": "eval-boat-rental",
+      "prompt": "I'm thinking about starting a boat rental business on a popular lake. I have $50K in savings, no boating industry experience, and I'd need to quit my current job to run it full-time. The lake gets about 200,000 visitors per summer season (May-September).",
+      "expected_output": "An operational analysis that maps concrete resource requirements (boats, dock, insurance, permits), calculates seasonal burn rate, identifies critical path to first rental, and defines a phased launch plan.",
       "assertions": [
-        "Output contains all 7 format fields: OPERATOR ASSESSMENT, RESOURCE REQUIREMENTS, CRITICAL PATH, BURN PROFILE, MVP SCOPE, EXECUTION PHASES, OPERATIONAL RISKS",
-        "Quantifies resource requirements with specific numbers (monthly expenses, savings runway, revenue targets)",
-        "Identifies critical path to first revenue with concrete dependencies (e.g., first client, legal setup, pipeline building)",
-        "Defines an MVP scope for the consulting practice (minimum viable offering)",
-        "Provides execution phases (Crawl-Walk-Run or equivalent phased approach)",
-        "Calculates or references burn rate relative to the 6-month savings and mortgage obligations",
-        "Adapts to solopreneur scale — does not apply hiring timelines or enterprise infrastructure frameworks"
+        {"text": "Output contains all 7 format fields: OPERATOR ASSESSMENT, RESOURCE REQUIREMENTS, CRITICAL PATH, BURN PROFILE, MVP SCOPE, EXECUTION PHASES, OPERATIONAL RISKS", "type": "structural"},
+        {"text": "Quantifies resource requirements with specific numbers (boat costs, dock lease, insurance, permits, staff)", "type": "analytical"},
+        {"text": "Identifies critical path to first rental with concrete dependencies (e.g., permits before boats, insurance before operations, dock access before launch)", "type": "analytical"},
+        {"text": "Proposes a time-boxed validation approach (e.g., rent or lease boats before buying, partner with existing marina, Concierge MVP) before full capital commitment", "type": "analytical"},
+        {"text": "Structures execution in explicitly named phases with stage gates or go/no-go criteria between phases — not just a timeline", "type": "analytical"},
+        {"text": "Calculates or references burn rate accounting for the seasonal gap (7 months off-season with no revenue vs year-round costs)", "type": "analytical"},
+        {"text": "Identifies operational risks specific to a seasonal physical-asset business (e.g., weather, maintenance, liability, off-season storage)", "type": "analytical"}
       ]
     },
     {
@@ -22,13 +22,13 @@
       "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
       "expected_output": "An operational analysis that maps the transition plan, identifies dependencies and bottlenecks in switching to AI content, quantifies the true cost comparison, and defines execution phases.",
       "assertions": [
-        "Output contains all 7 format fields: OPERATOR ASSESSMENT, RESOURCE REQUIREMENTS, CRITICAL PATH, BURN PROFILE, MVP SCOPE, EXECUTION PHASES, OPERATIONAL RISKS",
-        "Quantifies resource requirements with specific numbers (tool costs, editing time, transition period)",
-        "Identifies critical path dependencies for the transition (e.g., tool selection, quality validation, client communication)",
-        "Defines an MVP scope for testing AI content (not a full immediate cutover)",
-        "Provides execution phases for a gradual transition",
-        "Identifies at least one operational risk or bottleneck (e.g., quality review process, client approval workflows)",
-        "Analysis accounts for hidden operational costs beyond tool subscription (editing, QA, client management)"
+        {"text": "Output contains all 7 format fields: OPERATOR ASSESSMENT, RESOURCE REQUIREMENTS, CRITICAL PATH, BURN PROFILE, MVP SCOPE, EXECUTION PHASES, OPERATIONAL RISKS", "type": "structural"},
+        {"text": "Quantifies resource requirements with specific numbers (tool costs, editing time, transition period)", "type": "analytical"},
+        {"text": "Identifies critical path dependencies for the transition (e.g., tool selection, quality validation, client communication)", "type": "analytical"},
+        {"text": "Defines an MVP scope for testing AI content (not a full immediate cutover)", "type": "analytical"},
+        {"text": "Provides execution phases for a gradual transition", "type": "structural"},
+        {"text": "Identifies at least one operational risk or bottleneck (e.g., quality review process, client approval workflows)", "type": "analytical"},
+        {"text": "Analysis accounts for hidden operational costs beyond tool subscription (editing, QA, client management)", "type": "analytical"}
       ]
     },
     {
@@ -37,13 +37,13 @@
       "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
       "expected_output": "An operational analysis that maps resource requirements for both paths, identifies the critical path and bottlenecks for a pivot, calculates burn rate impact, and defines a phased execution plan.",
       "assertions": [
-        "Output contains all 7 format fields: OPERATOR ASSESSMENT, RESOURCE REQUIREMENTS, CRITICAL PATH, BURN PROFILE, MVP SCOPE, EXECUTION PHASES, OPERATIONAL RISKS",
-        "Quantifies resource requirements for the pivot (team allocation, timeline, costs) using the given team size of 12",
-        "Identifies critical path dependencies specific to a SaaS pivot (e.g., data migration, API compatibility, customer communication)",
-        "Defines an MVP scope for the AI-native platform (what to build first)",
-        "Provides execution phases that account for maintaining the existing product during transition",
-        "Calculates burn rate impact — how the pivot affects the $2M ARR runway",
-        "Identifies operational risks specific to pivoting (e.g., losing existing customers, team skill gaps, dual-product maintenance)"
+        {"text": "Output contains all 7 format fields: OPERATOR ASSESSMENT, RESOURCE REQUIREMENTS, CRITICAL PATH, BURN PROFILE, MVP SCOPE, EXECUTION PHASES, OPERATIONAL RISKS", "type": "structural"},
+        {"text": "Quantifies resource requirements for the pivot (team allocation, timeline, costs) using the given team size of 12", "type": "analytical"},
+        {"text": "Identifies critical path dependencies specific to a SaaS pivot (e.g., data migration, API compatibility, customer communication)", "type": "analytical"},
+        {"text": "Includes a build-vs-buy or technology evaluation framework for the AI components rather than assuming custom development", "type": "analytical"},
+        {"text": "Defines explicit resource allocation between maintaining the current product and building the new platform (e.g., team split ratios, time allocation)", "type": "analytical"},
+        {"text": "Calculates burn rate impact — how the pivot affects the $2M ARR runway", "type": "analytical"},
+        {"text": "Identifies operational risks specific to pivoting (e.g., losing existing customers, team skill gaps, dual-product maintenance)", "type": "analytical"}
       ]
     }
   ]

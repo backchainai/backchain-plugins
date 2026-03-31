@@ -3,17 +3,17 @@
   "evals": [
     {
       "id": 1,
-      "slug": "eval-career-decision",
-      "prompt": "Should I quit my stable $180K engineering job to start an AI consulting practice? I have 6 months of savings, a mortgage, and two school-age kids.",
-      "expected_output": "An ethical analysis that maps stakeholder impacts (family, current employer, future clients), applies moral frameworks to the tension between personal ambition and family obligations, and assesses long-term consequences for all affected parties.",
+      "slug": "eval-boat-rental",
+      "prompt": "I'm thinking about starting a boat rental business on a popular lake. I have $50K in savings, no boating industry experience, and I'd need to quit my current job to run it full-time. The lake gets about 200,000 visitors per summer season (May-September).",
+      "expected_output": "An ethical analysis that maps stakeholder impacts (lake community, environment, customers, employees), applies moral frameworks to safety and environmental obligations, and assesses long-term consequences for the lake ecosystem and local community.",
       "assertions": [
-        "Output contains all 7 format fields: ETHICIST ASSESSMENT, PRIMARY IMPACT, MORAL FRAMEWORK, REPUTATION RISK, REGULATORY RISK, CASCADE EFFECTS, RECOMMENDATION",
-        "Maps at least 3 stakeholder groups with impact assessment (e.g., family/children, current employer/team, future clients)",
-        "Applies at least one named moral framework (utilitarian, deontological, virtue ethics, or Rawlsian) by name",
-        "Assesses reversibility — can this decision be undone if it goes wrong?",
-        "Considers consequences for the family beyond the immediate financial impact",
-        "Adapts to personal scale — does not apply corporate stakeholder mapping or regulatory frameworks to a personal career decision",
-        "Analysis demonstrates distinct ethical perspective — not a generic risk assessment"
+        {"text": "Output contains all 7 format fields: ETHICIST ASSESSMENT, PRIMARY IMPACT, MORAL FRAMEWORK, REPUTATION RISK, REGULATORY RISK, CASCADE EFFECTS, RECOMMENDATION", "type": "structural"},
+        {"text": "Maps at least 3 stakeholder groups with impact assessment (e.g., lake community, environment/ecosystem, renters/tourists, potential employees)", "type": "analytical"},
+        {"text": "Applies at least one named moral framework (utilitarian, deontological, virtue ethics, or Rawlsian) by name", "type": "analytical"},
+        {"text": "Assesses safety and liability obligations — the ethical duty of care when putting inexperienced tourists on water", "type": "analytical"},
+        {"text": "Considers environmental impact on the lake ecosystem (fuel, noise, erosion, wildlife)", "type": "analytical"},
+        {"text": "Evaluates the regulatory landscape (boating permits, safety certifications, environmental regulations) as an ethical obligation, not just a legal checkbox", "type": "analytical"},
+        {"text": "Analysis demonstrates distinct ethical perspective — not a generic risk assessment or business feasibility review", "type": "analytical"}
       ]
     },
     {
@@ -22,13 +22,13 @@
       "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
       "expected_output": "An ethical analysis that centers the impact on the writers being displaced, applies moral frameworks to the cost-savings-vs-livelihoods tension, and considers the broader implications of AI replacing knowledge workers.",
       "assertions": [
-        "Output contains all 7 format fields: ETHICIST ASSESSMENT, PRIMARY IMPACT, MORAL FRAMEWORK, REPUTATION RISK, REGULATORY RISK, CASCADE EFFECTS, RECOMMENDATION",
-        "Maps at least 3 stakeholder groups including the content writers as directly affected parties",
-        "Applies at least one named moral framework by name to the job displacement question",
-        "Assesses the power differential between the agency (decision-maker) and the writers (affected party)",
-        "Considers consequences beyond the immediate cost savings (e.g., industry norms, team morale, client trust)",
-        "Evaluates consent — do the writers have any say in this decision?",
-        "Analysis does not reduce the ethical question to pure cost-benefit — recognizes the human dimension"
+        {"text": "Output contains all 7 format fields: ETHICIST ASSESSMENT, PRIMARY IMPACT, MORAL FRAMEWORK, REPUTATION RISK, REGULATORY RISK, CASCADE EFFECTS, RECOMMENDATION", "type": "structural"},
+        {"text": "Maps at least 3 stakeholder groups including the content writers as directly affected parties", "type": "analytical"},
+        {"text": "Applies at least one named moral framework by name to the job displacement question", "type": "analytical"},
+        {"text": "Assesses the power differential between the agency (decision-maker) and the writers (affected party)", "type": "analytical"},
+        {"text": "Considers consequences beyond the immediate cost savings (e.g., industry norms, team morale, client trust)", "type": "analytical"},
+        {"text": "Evaluates consent — do the writers have any say in this decision?", "type": "analytical"},
+        {"text": "Analysis does not reduce the ethical question to pure cost-benefit — recognizes the human dimension", "type": "analytical"}
       ]
     },
     {
@@ -37,13 +37,13 @@
       "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
       "expected_output": "An ethical analysis that maps impacts on existing customers, the engineering team, and other stakeholders, applies moral frameworks to the pivot decision, and considers the obligations created by existing customer relationships.",
       "assertions": [
-        "Output contains all 7 format fields: ETHICIST ASSESSMENT, PRIMARY IMPACT, MORAL FRAMEWORK, REPUTATION RISK, REGULATORY RISK, CASCADE EFFECTS, RECOMMENDATION",
-        "Maps at least 3 stakeholder groups (e.g., existing customers, engineering team, investors/owners)",
-        "Applies at least one named moral framework by name",
-        "Considers the obligation to existing customers who depend on the current product",
-        "Assesses impact on the engineering team (skill requirements, job security, workload during transition)",
-        "Evaluates reversibility of the pivot's impact on customer relationships",
-        "Considers long-term reputation effects of abandoning or degrading the current product"
+        {"text": "Output contains all 7 format fields: ETHICIST ASSESSMENT, PRIMARY IMPACT, MORAL FRAMEWORK, REPUTATION RISK, REGULATORY RISK, CASCADE EFFECTS, RECOMMENDATION", "type": "structural"},
+        {"text": "Maps at least 3 stakeholder groups (e.g., existing customers, engineering team, investors/owners)", "type": "analytical"},
+        {"text": "Applies at least one named moral framework by name", "type": "analytical"},
+        {"text": "Considers the obligation to existing customers who depend on the current product", "type": "analytical"},
+        {"text": "Assesses impact on the engineering team (skill requirements, job security, workload during transition)", "type": "analytical"},
+        {"text": "Evaluates reversibility of the pivot's impact on customer relationships", "type": "analytical"},
+        {"text": "Considers long-term reputation effects of abandoning or degrading the current product", "type": "analytical"}
       ]
     }
   ]
