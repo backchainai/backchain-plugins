@@ -3,7 +3,7 @@ model: claude-sonnet-4-6
 grading_model: claude-haiku-4-5
 
 # baseline_prompt: what a user would reasonably type without the skill
-# tools: "" (default) = pure text; panel needs "Agent,Read" for orchestration
+# tools: "" (default) = pure text; panel needs "Agent,Skill" for orchestration
 skills:
   advisor-visionary:
     path: advisors/skills/advisor-visionary
@@ -20,4 +20,4 @@ skills:
   advisory-panel:
     path: advisors/skills/advisory-panel
     baseline_prompt: "Analyze this decision from four perspectives — visionary, skeptical, operational, and ethical — then give me a recommendation."
-    tools: "Agent,Read"
+    tools: "Agent,Skill"
