@@ -113,6 +113,7 @@ uv run run_evals.py --skill advisor-visionary --scenario eval-boat-rental
 | `--grade-only` | Grade existing iteration without re-running |
 | `--model MODEL` | Override model for assessment runs |
 | `--grading-model MODEL` | Override model for grading |
+| `--parallel N` | Max concurrent runs (default: 4) |
 | `--config PATH` | Config file (default: `advisors/evals/config.yaml`) |
 | `--verbose` | Print claude responses to stderr |
 

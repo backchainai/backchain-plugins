@@ -1,6 +1,6 @@
 workspace: advisors-workspace
 model: claude-sonnet-4-6
-grading_model: claude-sonnet-4-6
+grading_model: claude-haiku-4-5
 
 # baseline_prompt: what a user would reasonably type without the skill
 # tools: "" (default) = pure text; panel needs "Agent,Read" for orchestration
