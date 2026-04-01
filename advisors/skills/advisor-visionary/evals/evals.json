@@ -1,0 +1,50 @@
+{
+  "skill_name": "advisor-visionary",
+  "evals": [
+    {
+      "id": 1,
+      "slug": "eval-boat-rental",
+      "prompt": "I'm thinking about starting a boat rental business on a popular lake. I have $50K in savings, no boating industry experience, and I'd need to quit my current job to run it full-time. The lake gets about 200,000 visitors per summer season (May-September).",
+      "expected_output": "A visionary analysis that sees beyond basic boat rentals to a platform or experience opportunity, challenges assumptions about what 'boat rental business' means, and identifies a first monopoly niche on the lake.",
+      "assertions": [
+        {"text": "Output contains all 7 format fields: VISION, MARKET CREATION, PLATFORM ARCHITECTURE, CONSTRAINT ELIMINATION, PRECEDENT, CAPITAL SCALE, FIRST MONOPOLY", "type": "structural"},
+        {"text": "Challenges at least one stated or implicit constraint (e.g., that $50K is the ceiling, that 'boat rental' is the right framing, or that the business must be seasonal)", "type": "analytical"},
+        {"text": "Identifies a specific transformative opportunity beyond 'rent boats' — reframes the business model or market (e.g., experience platform, fleet-as-a-service, marketplace)", "type": "analytical"},
+        {"text": "Provides a concrete first monopoly niche to dominate on this lake before expanding", "type": "analytical"},
+        {"text": "References a relevant precedent or pattern of platform transformation in a physical-asset business", "type": "analytical"},
+        {"text": "Adapts to small local business scale — does not apply venture-capital frameworks to a single-lake operation without justification", "type": "analytical"},
+        {"text": "Analysis provides specific, actionable insight rather than generic 'think bigger' advice", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "eval-content-writers",
+      "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
+      "expected_output": "A visionary analysis that sees beyond simple cost replacement to a transformative content strategy, challenges the framing of AI as a writer-replacement, and identifies platform or competitive positioning opportunities.",
+      "assertions": [
+        {"text": "Output contains all 7 format fields: VISION, MARKET CREATION, PLATFORM ARCHITECTURE, CONSTRAINT ELIMINATION, PRECEDENT, CAPITAL SCALE, FIRST MONOPOLY", "type": "structural"},
+        {"text": "Challenges the constraint that this is a binary replace-or-keep decision", "type": "analytical"},
+        {"text": "Identifies a transformative opportunity beyond cost savings (e.g., scaling content volume, new service offerings, competitive moat)", "type": "analytical"},
+        {"text": "Provides a concrete first step or initial niche", "type": "analytical"},
+        {"text": "References a relevant precedent of technology-driven transformation in a service industry", "type": "analytical"},
+        {"text": "Adapts to small business scale — does not treat a 10-person agency like a tech startup", "type": "analytical"},
+        {"text": "Analysis provides specific, actionable insight rather than generic 'AI will change everything' advice", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "eval-saas-pivot",
+      "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
+      "expected_output": "A visionary analysis that evaluates the pivot through first-principles thinking, challenges the framing of pivot-vs-double-down as the only options, and maps a platform architecture with network effects.",
+      "assertions": [
+        {"text": "Output contains all 7 format fields: VISION, MARKET CREATION, PLATFORM ARCHITECTURE, CONSTRAINT ELIMINATION, PRECEDENT, CAPITAL SCALE, FIRST MONOPOLY", "type": "structural"},
+        {"text": "Challenges at least one stated constraint or reframes the pivot/double-down binary", "type": "analytical"},
+        {"text": "Identifies a specific transformative end-state vision beyond 'add AI features'", "type": "analytical"},
+        {"text": "Describes a platform architecture with network effects or ecosystem potential", "type": "analytical"},
+        {"text": "References a relevant precedent of a successful pivot or platform transformation", "type": "analytical"},
+        {"text": "Provides a concrete first monopoly niche to dominate before expanding", "type": "analytical"},
+        {"text": "Analysis engages with the specific numbers ($2M ARR, 200 customers, team of 12) rather than ignoring them", "type": "analytical"}
+      ]
+    }
+  ]
+}

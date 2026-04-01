@@ -1,0 +1,23 @@
+workspace: advisors-workspace
+model: claude-sonnet-4-6
+grading_model: claude-haiku-4-5
+
+# baseline_prompt: what a user would reasonably type without the skill
+# tools: "" (default) = pure text; panel needs "Agent,Read" for orchestration
+skills:
+  advisor-visionary:
+    path: advisors/skills/advisor-visionary
+    baseline_prompt: "Give me a visionary take on this decision."
+  advisor-skeptic:
+    path: advisors/skills/advisor-skeptic
+    baseline_prompt: "Give me a skeptical take on this decision."
+  advisor-operator:
+    path: advisors/skills/advisor-operator
+    baseline_prompt: "Give me an operational take on this decision."
+  advisor-ethicist:
+    path: advisors/skills/advisor-ethicist
+    baseline_prompt: "Give me an ethical take on this decision."
+  advisory-panel:
+    path: advisors/skills/advisory-panel
+    baseline_prompt: "Analyze this decision from four perspectives — visionary, skeptical, operational, and ethical — then give me a recommendation."
+    tools: "Agent,Read"

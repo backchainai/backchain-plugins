@@ -1,0 +1,57 @@
+{
+  "skill_name": "advisory-panel",
+  "evals": [
+    {
+      "id": 1,
+      "slug": "eval-boat-rental",
+      "prompt": "I'm thinking about starting a boat rental business on a popular lake. I have $50K in savings, no boating industry experience, and I'd need to quit my current job to run it full-time. The lake gets about 200,000 visitors per summer season (May-September).",
+      "expected_output": "A full advisory panel analysis with all four advisor perspectives (visionary, skeptic, operator, ethicist) followed by a synthesis with areas of agreement, disagreement, critical callouts, and a risk-adjusted recommendation.",
+      "assertions": [
+        {"text": "Output contains all 4 advisor sections: Visionary, Skeptic, Operator, Ethicist", "type": "structural"},
+        {"text": "Each advisor section contains structured output matching that advisor's format fields", "type": "structural"},
+        {"text": "The 4 advisor analyses are meaningfully different from each other — distinct perspectives, not 4 variations of the same take", "type": "analytical"},
+        {"text": "Areas of Agreement identifies convergence across 3+ advisors with specific advisor names cited", "type": "structural"},
+        {"text": "Areas of Disagreement identifies at least one genuine tension (e.g., visionary sees platform opportunity vs. skeptic sees capital trap)", "type": "analytical"},
+        {"text": "Critical Callouts has a unique one-line insight from each of the 4 advisors", "type": "structural"},
+        {"text": "Risk-Adjusted Recommendation includes Confidence Level (HIGH/MEDIUM/LOW)", "type": "structural"},
+        {"text": "Risk-Adjusted Recommendation includes Key Conditions, Primary Risk, Recommended Next Step, and Rationale", "type": "structural"},
+        {"text": "Synthesis section adds analytical value beyond restating what each advisor said", "type": "analytical"},
+        {"text": "All advisors engage with the specific constraints ($50K, no experience, seasonal, 200K visitors) rather than giving generic advice", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "eval-content-writers",
+      "prompt": "Our 10-person marketing agency is considering replacing our 3 content writers with AI tools. The writers produce about 40 blog posts per month. AI could do it for 1/10th the cost.",
+      "expected_output": "A full advisory panel analysis with genuine disagreement between advisors (e.g., visionary sees opportunity while ethicist raises concerns about the writers), synthesized into a nuanced recommendation.",
+      "assertions": [
+        {"text": "Output contains all 4 advisor sections: Visionary, Skeptic, Operator, Ethicist", "type": "structural"},
+        {"text": "Each advisor section contains structured output matching that advisor's format fields", "type": "structural"},
+        {"text": "The 4 advisor analyses are meaningfully different — the ethicist and visionary should have notably different takes on this scenario", "type": "analytical"},
+        {"text": "Areas of Agreement identifies convergence across 3+ advisors with specific advisor names cited", "type": "structural"},
+        {"text": "Areas of Disagreement surfaces the tension between cost efficiency and human impact", "type": "analytical"},
+        {"text": "Critical Callouts has a unique one-line insight from each of the 4 advisors", "type": "structural"},
+        {"text": "Risk-Adjusted Recommendation includes all 5 fields: Confidence Level, Key Conditions, Primary Risk, Recommended Next Step, Rationale", "type": "structural"},
+        {"text": "Synthesis reflects the genuine ethical complexity — does not reduce it to a simple go/no-go", "type": "analytical"},
+        {"text": "The Recommended Next Step is concrete and actionable (not 'think about it more')", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "eval-saas-pivot",
+      "prompt": "Our B2B SaaS product has flat growth at $2M ARR with 200 customers. Engineering team of 12. Should we pivot to an AI-native platform or double down on the current product with incremental improvements?",
+      "expected_output": "A full advisory panel analysis where all four frameworks engage at full depth with the business context, producing a synthesis that genuinely weighs the pivot vs. double-down trade-offs.",
+      "assertions": [
+        {"text": "Output contains all 4 advisor sections: Visionary, Skeptic, Operator, Ethicist", "type": "structural"},
+        {"text": "Each advisor section contains structured output matching that advisor's format fields", "type": "structural"},
+        {"text": "The 4 advisor analyses engage with the specific numbers ($2M ARR, 200 customers, team of 12)", "type": "analytical"},
+        {"text": "Areas of Agreement identifies convergence across 3+ advisors with specific advisor names cited", "type": "structural"},
+        {"text": "Areas of Disagreement identifies genuine tensions — the visionary and skeptic should have notably different views on the pivot", "type": "analytical"},
+        {"text": "Critical Callouts has a unique one-line insight from each of the 4 advisors", "type": "structural"},
+        {"text": "Risk-Adjusted Recommendation includes all 5 fields: Confidence Level, Key Conditions, Primary Risk, Recommended Next Step, Rationale", "type": "structural"},
+        {"text": "Rationale explicitly explains how the four perspectives were weighed against each other", "type": "analytical"},
+        {"text": "Synthesis identifies the core strategic tension rather than just listing what each advisor said", "type": "analytical"}
+      ]
+    }
+  ]
+}
