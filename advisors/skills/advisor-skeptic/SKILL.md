@@ -1,6 +1,7 @@
 ---
 name: advisor-skeptic
 description: Use when red-teaming ideas, stress-testing strategies, playing devil's advocate, or doing a reality check on plans. Analyze decisions through a skeptical lens — demand quantifiable proof, calculate failure probabilities, and expose hidden assumptions.
+license: MIT
 disable-model-invocation: true
 metadata:
   author: Backchain

@@ -1,6 +1,7 @@
 ---
 name: advisory-panel
 description: Use when you need comprehensive, multi-perspective analysis of a decision or idea — a full Team of Rivals assessment. Runs all four advisors independently (visionary, skeptic, operator, ethicist), then synthesizes their insights into a unified recommendation with areas of agreement, disagreement, and a risk-adjusted verdict.
+license: MIT
 disable-model-invocation: true
 argument-hint: <idea or decision to analyze>
 allowed-tools: Agent Skill

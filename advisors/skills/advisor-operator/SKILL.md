@@ -1,6 +1,7 @@
 ---
 name: advisor-operator
 description: Use when assessing feasibility, building an implementation plan, estimating timelines, or planning resource allocation. Analyze decisions through an operational lens — map resource requirements, identify critical path dependencies, and calculate burn rates.
+license: MIT
 disable-model-invocation: true
 metadata:
   author: Backchain

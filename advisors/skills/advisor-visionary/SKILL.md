@@ -1,6 +1,7 @@
 ---
 name: advisor-visionary
 description: Use when brainstorming possibilities, challenging assumptions, exploring transformative strategies, or thinking 10x instead of 10%. Analyze decisions through a visionary lens — challenge constraints, identify moonshot opportunities, ask 'what if', and reframe problems as blue-sky opportunities.
+license: MIT
 disable-model-invocation: true
 metadata:
   author: Backchain

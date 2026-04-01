@@ -1,6 +1,7 @@
 ---
 name: advisor-ethicist
 description: Use when weighing ethical implications, assessing stakeholder impact, evaluating responsible AI practices, or considering long-term consequences. Analyze decisions through an ethical lens — evaluate who benefits and who bears risk, assess reputation trajectory, and apply moral frameworks.
+license: MIT
 disable-model-invocation: true
 metadata:
   author: Backchain
