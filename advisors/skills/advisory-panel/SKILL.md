@@ -1,6 +1,7 @@
 ---
 name: advisory-panel
 description: Use when you need comprehensive, multi-perspective analysis of a decision or idea — a full Team of Rivals assessment. Runs all four advisors independently (visionary, skeptic, operator, ethicist), then synthesizes their insights into a unified recommendation with areas of agreement, disagreement, and a risk-adjusted verdict.
+license: MIT
 disable-model-invocation: true
 argument-hint: <idea or decision to analyze>
 allowed-tools: Agent Skill
@@ -17,29 +18,17 @@ You will analyze the following concept through four independent advisory perspec
 
 **Decision/Idea to Analyze:** $ARGUMENTS
 
-## Workflow
+## Workflow Checklist
 
-### Phase 1: Build Context Briefing
+1. [ ] **Build context briefing** from conversation (decision, background, constraints, stakeholders, prior analysis) — thorough enough that an advisor with no conversation history can produce a well-informed analysis
+2. [ ] **Launch all 4 advisor subagents in parallel** in a single message — each invokes its skill via `Skill("advisor-visionary", args: "<context briefing>")` etc. — each runs in isolated context, producing structured output per its Output Format (200-400 words)
+3. [ ] **Collect all 4 analyses** before proceeding
+4. [ ] **Identify areas of agreement**
+5. [ ] **Identify areas of disagreement**
+6. [ ] **Extract critical callouts**
+7. [ ] **Generate risk-adjusted recommendation**
 
-Construct a comprehensive context briefing from the conversation:
-- The decision or idea to analyze
-- Background and motivation
-- Constraints and requirements
-- Stakeholders affected
-- Any prior discussion or analysis
-
-This briefing is what each advisor will receive — make it thorough enough that an advisor with no conversation history can produce a well-informed analysis.
-
-### Phase 2: Run Four Independent Advisor Analyses
-
-Launch all four advisors as **parallel subagents in a single message**. Each subagent:
-- Invokes its advisor skill via the Skill tool (e.g., `Skill("advisor-visionary", args: "<context briefing>")`)
-- The Skill tool loads the advisor's analytical framework automatically
-- Produces structured output per the framework's Output Format section (200-400 words, all required fields)
-
-Each subagent runs in its own isolated context — it cannot see the other advisors' analyses.
-
-### Phase 3: Synthesize
+## Synthesis Detail
 
 After all four subagents return their results, synthesize the findings:
 
