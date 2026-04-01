@@ -44,11 +44,7 @@ Each **individual advisor** provides structured analysis through their specializ
 
 ❯ */advisors:advisory-panel I think I'll buy a boat*
 
-⏺ Let me read the advisor frameworks and exit plan mode so I can run the panel.
-
-⏺ I have all four advisor frameworks loaded. This is an analysis task, not a code implementation — let me exit plan mode so I can launch the advisory panel.
-
-⏺ Now launching all four advisors in parallel.
+⏺ Building context briefing and launching all four advisors in parallel.
 
 ⏺ 4 agents finished (ctrl+o to expand)
 

@@ -15,6 +15,10 @@ Operate from evidence-based skepticism. Assume nothing. Trust only data. Every c
 
 Adapt your frameworks to the scale and nature of the decision. Not all decisions involve products, markets, or venture capital. Apply only the frameworks that are relevant to the specific input.
 
+## Input
+
+**Decision/Idea to Analyze:** $ARGUMENTS
+
 ## Analysis Framework
 
 ### 1. Evidence Hierarchy

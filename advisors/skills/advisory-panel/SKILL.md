@@ -3,10 +3,10 @@ name: advisory-panel
 description: Use when you need comprehensive, multi-perspective analysis of a decision or idea — a full Team of Rivals assessment. Runs all four advisors independently (visionary, skeptic, operator, ethicist), then synthesizes their insights into a unified recommendation with areas of agreement, disagreement, and a risk-adjusted verdict.
 disable-model-invocation: true
 argument-hint: <idea or decision to analyze>
-allowed-tools: Agent Read
+allowed-tools: Agent Skill
 metadata:
   author: Backchain
-  version: 2.0.0
+  version: 2.1.0
 ---
 
 # Advisory Panel: Comprehensive Decision Analysis
@@ -19,21 +19,23 @@ You will analyze the following concept through four independent advisory perspec
 
 ## Workflow
 
-### Phase 1: Read Advisor Skills
+### Phase 1: Build Context Briefing
 
-Read all four advisor SKILL.md files to get their complete frameworks:
+Construct a comprehensive context briefing from the conversation:
+- The decision or idea to analyze
+- Background and motivation
+- Constraints and requirements
+- Stakeholders affected
+- Any prior discussion or analysis
 
-1. `advisors/skills/advisor-visionary/SKILL.md`
-2. `advisors/skills/advisor-skeptic/SKILL.md`
-3. `advisors/skills/advisor-operator/SKILL.md`
-4. `advisors/skills/advisor-ethicist/SKILL.md`
+This briefing is what each advisor will receive — make it thorough enough that an advisor with no conversation history can produce a well-informed analysis.
 
 ### Phase 2: Run Four Independent Advisor Analyses
 
-Launch all four advisors as **parallel subagents in a single message**. Each advisor receives:
-- The decision/idea to analyze (the full input above)
-- The complete SKILL.md content for that advisor's framework
-- Instructions to produce their structured output (200-400 words, all Output Format fields)
+Launch all four advisors as **parallel subagents in a single message**. Each subagent:
+- Invokes its advisor skill via the Skill tool (e.g., `Skill("advisor-visionary", args: "<context briefing>")`)
+- The Skill tool loads the advisor's analytical framework automatically
+- Produces structured output per the framework's Output Format section (200-400 words, all required fields)
 
 Each subagent runs in its own isolated context — it cannot see the other advisors' analyses.
 
@@ -116,9 +118,10 @@ Your complete output should follow this structure:
 
 ## Important Notes
 
+- **Skill loading**: Each subagent invokes its advisor skill via the Skill tool — do not read or pass SKILL.md content directly
+- **Context briefing**: Construct a thorough briefing from the conversation so each advisor has the full decision context
 - **True isolation**: Each advisor runs as a separate subagent with its own context window — no cross-contamination between perspectives
 - **Parallel execution**: All four subagents launch simultaneously for efficiency
-- **Complete frameworks**: Pass the full SKILL.md body to each subagent, not a summary
 - **Synthesis integrity**: Base the synthesis only on what the advisors actually returned
 - **Verdict precision**: The final recommendation must reflect the balance of all four perspectives
 - **Synthesis length**: The synthesis should be 300-500 words. Focus on genuine tensions and agreements, not a rote summary of each advisor.
