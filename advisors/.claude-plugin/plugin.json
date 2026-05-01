@@ -6,7 +6,7 @@
     "name": "Backchain",
     "url": "https://backchain.ai"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "keywords": [
     "decision-analysis",
     "advisory",
