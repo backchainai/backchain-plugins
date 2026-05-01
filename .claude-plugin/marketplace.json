@@ -16,7 +16,7 @@
     {
       "name": "engram",
       "source": "./engram",
-      "description": "Filesystem-backed agent memory — explicit consolidation, session briefing, and ephemeral working state, complementary to native auto memory and /recap"
+      "description": "Filesystem-backed agent memory for Claude Code"
     }
   ]
 }

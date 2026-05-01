@@ -1,6 +1,6 @@
 {
   "name": "engram",
-  "description": "Filesystem-backed agent memory for Claude Code: explicit consolidation, session briefing, and ephemeral working state — complementary to native auto-memory and /recap",
+  "description": "Filesystem-backed agent memory for Claude Code",
   "version": "1.0.0",
   "author": {
     "name": "Backchain",
