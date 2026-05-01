@@ -1,0 +1,50 @@
+{
+  "skill_name": "working",
+  "evals": [
+    {
+      "id": 1,
+      "slug": "eval-checkpoint-fresh",
+      "fixture": "checkpoint-fresh",
+      "prompt": "Checkpoint our progress. We've been discussing a JWT-based authentication redesign for the API. Decisions so far: use JWT with refresh tokens (over session cookies, because the API is consumed by mobile clients). Open todos: implement token validation middleware, write integration tests for token refresh. Open question: should we support multiple identity issuers or just one?",
+      "expected_output": "A `.memory/` directory created in the workspace with todos.md, decisions.md, and questions.md populated from the conversation content.",
+      "assertions": [
+        {"text": "A .memory/ directory exists in the workspace after the run", "type": "fs"},
+        {"text": ".memory/todos.md exists and contains the two todos described in the prompt (token validation middleware, integration tests)", "type": "fs"},
+        {"text": ".memory/decisions.md exists and contains the JWT decision with rationale (mobile clients) and the alternative considered (session cookies)", "type": "fs"},
+        {"text": ".memory/questions.md exists and contains the multi-issuer question", "type": "fs"},
+        {"text": "Each .memory/ file contains a Last Updated timestamp", "type": "fs"},
+        {"text": "The output reports a checkpoint summary with counts (e.g., '2 todos added, 1 decision documented, 1 question captured')", "type": "structural"}
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "eval-checkpoint-append",
+      "fixture": "checkpoint-append",
+      "prompt": "Checkpoint our progress. New decisions today: use PostgreSQL over MongoDB (we need transactional integrity). New todos: provision the database, draft the schema. Don't lose anything we already had.",
+      "expected_output": "Existing .memory/ files updated with new content appended; pre-existing items preserved; timestamps updated.",
+      "assertions": [
+        {"text": "Pre-existing entries from the fixture's .memory/todos.md are still present after the run (the existing 'Implement token validation middleware' todo should still be there)", "type": "fs"},
+        {"text": "New todos (provision the database, draft the schema) are appended to .memory/todos.md", "type": "fs"},
+        {"text": "Pre-existing JWT decision in .memory/decisions.md is preserved", "type": "fs"},
+        {"text": "New PostgreSQL decision is added to .memory/decisions.md with the transactional-integrity rationale", "type": "fs"},
+        {"text": "Last Updated timestamps in modified files are newer than the pre-run timestamps shown in the fixture", "type": "fs"},
+        {"text": "The output explicitly notes that existing content was preserved (append, not overwrite)", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "eval-promote-plan",
+      "fixture": "promote-plan",
+      "prompt": "Promote my working memory. Show me the promotion plan first — don't actually create any ADRs or issues yet. I want to see your tool detection and target suggestions before approving anything.",
+      "expected_output": "A promotion plan listing each artifact, its proposed target, and a request for confirmation. The plan asks the user to confirm tool choices (issue tracker, ADR location) rather than assuming. No ADRs or external issues are actually created.",
+      "assertions": [
+        {"text": "Output presents a promotion plan with sections for Decisions, Todos, and Questions", "type": "structural"},
+        {"text": "For decisions classified as ADR-worthy, the plan suggests an ADR target (docs/adr/ or similar) and asks for user confirmation rather than silently creating the file", "type": "analytical"},
+        {"text": "For todos, the plan asks which issue tracker to use OR notes which tracker it detected before creating issues", "type": "analytical"},
+        {"text": "Output explicitly waits for approval before executing — phrases like 'confirm each', 'approve all?', 'proceed?', or similar", "type": "analytical"},
+        {"text": "No ADR file has been written to docs/adr/ during the run (the workspace should NOT contain a new file under docs/adr/ with content from .memory/decisions.md)", "type": "fs"},
+        {"text": "The .memory/ directory and its contents are unchanged from the fixture (promote does not delete or modify until the user approves and a separate cleanup is run)", "type": "fs"}
+      ]
+    }
+  ]
+}

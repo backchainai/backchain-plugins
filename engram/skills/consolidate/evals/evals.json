@@ -1,0 +1,48 @@
+{
+  "skill_name": "consolidate",
+  "evals": [
+    {
+      "id": 1,
+      "slug": "eval-scan-mixed-tree",
+      "fixture": "scan-mixed-tree",
+      "prompt": "I'd like to consolidate my knowledge directories. The scan roots for this project are: docs/, outputs/, archive/, and .memory/. Generate a cleanup plan file. Don't execute anything yet — I want to review first.",
+      "expected_output": "A plan file (or detailed inline preview of one) with action codes per file: stale items in docs/ marked DELETE or ARCHIVE, recent outputs/ files left as KEEP or marked with destination suggestions, the .DS_Store marked DELETE. Auto memory entries (if any are reachable) treated read-only.",
+      "assertions": [
+        {"text": "The output describes or produces a plan file containing per-file action codes from this set: DELETE, ARCHIVE, DOCS, MEMORY, RULES, CLAUDEMD, SKILL, MOVE, KEEP, SKIP", "type": "structural"},
+        {"text": "The .DS_Store system-artifact file in outputs/ is classified as DELETE", "type": "structural"},
+        {"text": "A plan file exists in the workspace after the run (look for a markdown file with 'plan' or 'audit' in the name and a Filesystem audit section)", "type": "fs"},
+        {"text": "The skill does NOT recommend DELETE or ARCHIVE for any file under a path containing 'projects/' and 'memory/' (auto memory must be respected)", "type": "structural"},
+        {"text": "Stale items (>30 days old) get suggested destinations or actions, not just KEEP", "type": "analytical"},
+        {"text": "Each declared scan root (docs/, outputs/, archive/, .memory/) appears as a section in the plan, even if empty", "type": "structural"}
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "eval-staging-triage",
+      "fixture": "staging-triage",
+      "prompt": "Quick triage of my outputs/ directory. Show me what's aging or stale and suggest where each file should go. Inline report — no plan file needed.",
+      "expected_output": "An inline table per the staging-triage format with Age, Status (Current / Aging / Stale), and Suggested Action for each file. No plan file written.",
+      "assertions": [
+        {"text": "Output contains a table with Age and Status columns and rows for the files in outputs/", "type": "structural"},
+        {"text": "Files older than 30 days are classified as 'Stale' and get an Archive or Move suggestion", "type": "analytical"},
+        {"text": "Files between 7 and 30 days old are classified as 'Aging' and get a permanent-destination suggestion", "type": "analytical"},
+        {"text": "No plan file is written to the workspace (the workspace should not contain a new file matching 'plan' or 'audit' after the run)", "type": "fs"},
+        {"text": "Output includes a summary line with counts per status (Current / Aging / Stale)", "type": "structural"}
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "eval-respect-auto-memory",
+      "fixture": "respect-auto-memory",
+      "prompt": "Run a full audit. The fake auto-memory directory at .claude-projects-fake/memory/ should be treated like real auto memory: graduation-only classification, never DELETE the MEMORY.md, never ARCHIVE auto-memory files. Scan roots are: docs/, outputs/, .claude-projects-fake/memory/.",
+      "expected_output": "A plan file. Auto-memory entries get RULES or CLAUDEMD (graduation) or KEEP — not DELETE or ARCHIVE. MEMORY.md is unchanged after the run.",
+      "assertions": [
+        {"text": "MEMORY.md still exists in .claude-projects-fake/memory/ after the run, unmodified", "type": "fs"},
+        {"text": "No file under .claude-projects-fake/memory/ has been deleted or moved during the run (the directory should still contain the same files it started with)", "type": "fs"},
+        {"text": "The plan output classifies feedback-style auto-memory entries as RULES or CLAUDEMD (graduation), not as DELETE or ARCHIVE", "type": "analytical"},
+        {"text": "The plan output explicitly notes the read-only treatment of MEMORY.md (e.g., a note, comment, or KEEP action with a reason that mentions auto-memory infrastructure)", "type": "analytical"},
+        {"text": "The plan still produces actionable items for the docs/ and outputs/ sections (it does not become a no-op just because auto memory is in scope)", "type": "structural"}
+      ]
+    }
+  ]
+}
