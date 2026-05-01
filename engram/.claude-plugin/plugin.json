@@ -1,0 +1,21 @@
+{
+  "name": "engram",
+  "description": "Filesystem-backed agent memory for Claude Code: explicit consolidation, session briefing, and ephemeral working state — complementary to native auto-memory and /recap",
+  "version": "1.0.0",
+  "author": {
+    "name": "Backchain",
+    "url": "https://backchain.ai"
+  },
+  "license": "AGPL-3.0-only",
+  "keywords": [
+    "memory",
+    "recollection",
+    "consolidation",
+    "session-briefing",
+    "working-memory",
+    "agentskills"
+  ],
+  "category": "productivity",
+  "repository": "https://github.com/backchainai/backchain-plugins",
+  "homepage": "https://github.com/backchainai/backchain-plugins/tree/main/engram"
+}
