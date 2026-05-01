@@ -1,0 +1,25 @@
+workspace: engram-workspace
+model: claude-sonnet-4-6
+grading_model: claude-haiku-4-5
+
+# Each skill declares:
+#   path: skill directory (relative to repo root)
+#   baseline_prompt: what a user would reasonably type without the skill
+#   fixture_root: directory containing per-scenario fixture trees (relative to repo root)
+#   tools: comma-separated tool list to grant during the run (default: empty)
+skills:
+  consolidate:
+    path: engram/skills/consolidate
+    baseline_prompt: "Audit my knowledge directories and tell me what to clean up. Don't actually delete anything."
+    fixture_root: engram/evals/fixtures/sample-knowledge-tree
+    tools: "Read,Write,Bash"
+  briefing:
+    path: engram/skills/briefing
+    baseline_prompt: "Give me a quick session briefing — what should I be working on, what's recent in this project."
+    fixture_root: engram/evals/fixtures/sample-git-state
+    tools: "Read,Bash"
+  working:
+    path: engram/skills/working
+    baseline_prompt: "Help me checkpoint working memory in a .memory/ directory: capture todos, decisions, and questions from our conversation."
+    fixture_root: engram/evals/fixtures/sample-memory-dir
+    tools: "Read,Write,Bash"

@@ -12,6 +12,11 @@
       "name": "advisors",
       "source": "./advisors",
       "description": "Team of Rivals advisory panel — four specialized advisors for multi-role decision analysis"
+    },
+    {
+      "name": "engram",
+      "source": "./engram",
+      "description": "Filesystem-backed agent memory for Claude Code"
     }
   ]
 }

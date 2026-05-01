@@ -1,0 +1,9 @@
+# Eval workspace and per-run artifacts
+engram-workspace/
+evals/.env
+
+# Python build artifacts
+__pycache__/
+*.pyc
+.venv/
+.uv/

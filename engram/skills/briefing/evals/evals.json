@@ -1,0 +1,46 @@
+{
+  "skill_name": "briefing",
+  "evals": [
+    {
+      "id": 1,
+      "slug": "eval-active-project",
+      "fixture": "active-project",
+      "prompt": "Catch me up. What was I working on, what's recent, and what's available to start?",
+      "expected_output": "A briefing under 40 lines with sections for Active Work, Ready to Start, Recent Activity, Uncommitted Changes, Quick Stats, and (if signals exist) Housekeeping. Read-only; no files written.",
+      "assertions": [
+        {"text": "Output is structured with the named sections: Active Work, Ready to Start, Recent Activity, Quick Stats", "type": "structural"},
+        {"text": "Output is under 40 lines (count the rendered briefing only, ignoring code fences)", "type": "structural"},
+        {"text": "The Recent Activity section lists git commits from the fixture (the fixture seeds at least 3 commits)", "type": "analytical"},
+        {"text": "If the fixture's outputs/ contains a file older than 7 days, the Housekeeping section flags it and suggests `consolidate staging`", "type": "analytical"},
+        {"text": "If the fixture's .memory/ contains active content, the Housekeeping section suggests considering `working promote`", "type": "analytical"},
+        {"text": "The workspace contains no new files written by the briefing run (briefing is read-only — the file count and contents should match the fixture pre-run)", "type": "fs"}
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "eval-no-tracker-detected",
+      "fixture": "no-tracker-detected",
+      "prompt": "What was I working on?",
+      "expected_output": "A briefing that handles the missing issue tracker gracefully — either asks the user which tracker to query, or proceeds with git-only sections and notes the gap.",
+      "assertions": [
+        {"text": "Output either asks the user to specify an issue tracker, OR explicitly notes that no issue tracker is configured / detected, OR omits the tracker-dependent sections cleanly without erroring", "type": "analytical"},
+        {"text": "Output still includes Recent Activity from git (git is available in the fixture)", "type": "structural"},
+        {"text": "Output does not invent or hallucinate issues — no IDs, no titles, no fake counts in the Active Work / Ready to Start sections", "type": "analytical"},
+        {"text": "Briefing remains under 40 lines", "type": "structural"}
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "eval-clean-project",
+      "fixture": "clean-project",
+      "prompt": "Where did I leave off?",
+      "expected_output": "A short briefing reflecting an essentially-empty project state. No fabricated activity. 'Project is clear' or equivalent.",
+      "assertions": [
+        {"text": "Output explicitly notes that there is no active or ready work (e.g., 'Project is clear', 'No open issues', 'Nothing in progress')", "type": "analytical"},
+        {"text": "Output does NOT include a Housekeeping section (no staleness signals exist in this fixture)", "type": "structural"},
+        {"text": "Briefing under 20 lines for this trivial case", "type": "structural"},
+        {"text": "Output does not invent commits, issues, or activity that doesn't exist in the fixture", "type": "analytical"}
+      ]
+    }
+  ]
+}
