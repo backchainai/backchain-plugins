@@ -14,9 +14,11 @@ Manage ephemeral `.memory/` directories for persisting structured conversation s
 
 | Command | Purpose |
 |---------|---------|
-| `/working checkpoint` | Create or update `.memory/` with current conversation state |
-| `/working promote` | Move `.memory/` artifacts to permanent knowledge locations |
-| `/working cleanup` | Delete promoted content, preserve the directory |
+| `/engram:working checkpoint` | Create or update `.memory/` with current conversation state |
+| `/engram:working promote` | Move `.memory/` artifacts to permanent knowledge locations |
+| `/engram:working cleanup` | Delete promoted content, preserve the directory |
+
+The skill is invoked as `/engram:working` (the plugin-qualified skill name) followed by the subcommand. Natural-language phrasings like "checkpoint working memory" trigger the same dispatch.
 
 ## Working memory vs auto memory
 
@@ -24,7 +26,7 @@ This skill complements [Claude Code's native auto memory](https://code.claude.co
 
 | | Working memory (this skill) | Auto memory (native) |
 |---|---|---|
-| **Trigger** | User-initiated (`/working checkpoint`) | Automatic (Claude decides what's worth remembering) |
+| **Trigger** | User-initiated (`/engram:working checkpoint`) | Automatic (Claude decides what's worth remembering) |
 | **Content** | Structured work state — todos, decisions, questions | Implicit learnings — corrections, preferences, patterns |
 | **Lifecycle** | Ephemeral: checkpoint → promote → cleanup | Persistent until manually deleted |
 | **Scope** | Per-directory (`.memory/` in CWD) | Per-project (`~/.claude/projects/<project>/`) |

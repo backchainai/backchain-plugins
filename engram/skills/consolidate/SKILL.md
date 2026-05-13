@@ -56,10 +56,12 @@ If a directory the user named does not exist, surface that in the report rather 
 
 | Command | Purpose |
 |---------|---------|
-| `/consolidate` or `/consolidate scan` | Full audit: scan all declared knowledge dirs, generate plan file |
-| `/consolidate staging` | Quick triage of one designated staging directory with age classification + destination prompts (inline report, no plan file) |
-| `/consolidate execute` | Read the user-edited plan file and execute approved actions |
-| `/consolidate status` | Inline health summary: file count and age per declared directory, stray count |
+| `/engram:consolidate` or `/engram:consolidate scan` | Full audit: scan all declared knowledge dirs, generate plan file |
+| `/engram:consolidate staging` | Quick triage of one designated staging directory with age classification + destination prompts (inline report, no plan file) |
+| `/engram:consolidate execute` | Read the user-edited plan file and execute approved actions |
+| `/engram:consolidate status` | Inline health summary: file count and age per declared directory, stray count |
+
+The skill is invoked as `/engram:consolidate` (the plugin-qualified skill name) followed by the optional subcommand. Natural-language phrasings like "consolidate knowledge" or "audit knowledge directories" trigger the same dispatch.
 
 ## Scan algorithm
 
@@ -114,7 +116,7 @@ Write a plan to a path the user has designated for staging output (or `<scan-roo
 | `KEEP` | No action |
 | `SKIP` | Defer decision |
 
-## Execution safety rules (`/consolidate execute`)
+## Execution safety rules (`/engram:consolidate execute`)
 
 1. Parse the edited plan; extract all rows where Action is not `KEEP` or `SKIP`.
 2. Create destination directories first.
@@ -124,7 +126,7 @@ Write a plan to a path the user has designated for staging output (or `<scan-roo
 6. Clean empty directories produced by moves and deletes — empty directories mislead future scans.
 7. Verify final counts match the plan summary; report discrepancies.
 
-## Staging triage (`/consolidate staging`)
+## Staging triage (`/engram:consolidate staging`)
 
 A focused, quick-check variant for a single designated staging directory. Produces an inline report — no plan file. Age thresholds:
 
@@ -138,7 +140,7 @@ For each file the user wants to act on, prompt for the destination. **Do not gue
 
 ## Status output
 
-`/consolidate status` produces inline text only: file count and age per declared directory, stray count with up to three example paths.
+`/engram:consolidate status` produces inline text only: file count and age per declared directory, stray count with up to three example paths.
 
 ## Error states
 

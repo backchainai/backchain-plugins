@@ -9,7 +9,7 @@ purpose: Cleanup recommendations for human review and approval
 
 ## Instructions
 
-Review the tables below. Edit the **Action** column to approve, change, or override each recommendation. Then run `/consolidate execute` to apply.
+Review the tables below. Edit the **Action** column to approve, change, or override each recommendation. Then run `/engram:consolidate execute` to apply.
 
 **Action codes:** `DELETE`, `ARCHIVE`, `DOCS`, `MEMORY`, `RULES`, `CLAUDEMD`, `SKILL`, `MOVE`, `KEEP`, `SKIP`
 
