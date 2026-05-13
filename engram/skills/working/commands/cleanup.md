@@ -6,7 +6,7 @@ Delete promoted content from the `.memory/` directory.
 
 ## Trigger
 
-`/working cleanup` or natural language: "clean up working memory", "clear memory".
+`/engram:working cleanup` or natural language: "clean up working memory", "clear memory".
 
 ## Behavior
 
@@ -39,7 +39,7 @@ Warning: .memory/ contains items that have not been promoted:
 - 2 decisions (no corresponding ADRs)
 - 1 unresolved question (no issue created)
 
-Run /working promote first, or confirm deletion to proceed.
+Run /engram:working promote first, or confirm deletion to proceed.
 ```
 
 Require explicit confirmation to delete unpromoted content.

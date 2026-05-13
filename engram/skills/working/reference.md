@@ -15,7 +15,7 @@ cd ~/projects/api-redesign/
 
 User: "Let's design the API authentication"
 [discussion happens]
-User: "/working checkpoint"
+User: "/engram:working checkpoint"
 Claude: [creates .memory/ with todos, decisions, questions]
 Checkpointed working memory:
 - 2 todos added
@@ -40,7 +40,7 @@ Claude: [reads .memory/ files; also checks native auto memory MEMORY.md for rela
 ### Day 5: promote and clean up
 
 ```
-User: "/working promote"
+User: "/engram:working promote"
 Claude: "I see these artifacts. Where should they go?
 1. 1 decision -> ADR. I see docs/adr/ in this project — use it?
 2. 3 todos -> issues. Detected .beads/ — use Beads, or another tracker?
@@ -51,7 +51,7 @@ Confirm each before I create files."
 Claude: [creates files / issues per user direction]
 "Promoted. Ready for cleanup."
 
-User: "/working cleanup"
+User: "/engram:working cleanup"
 Claude: [deletes contents, keeps .memory/ directory]
 "Working memory cleaned up. Directory preserved for future use."
 ```

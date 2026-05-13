@@ -6,7 +6,7 @@ Create or update `.memory/` with current conversation state.
 
 ## Trigger
 
-`/working checkpoint` or natural language: "checkpoint our progress", "save working memory".
+`/engram:working checkpoint` or natural language: "checkpoint our progress", "save working memory".
 
 ## Behavior
 

@@ -50,7 +50,7 @@ Three things `engram` users sometimes assume are native but are not (as of the m
 
 **`consolidate` rule:** Treat native auto-memory as the source of truth for what Claude has learned. Do not delete or rewrite auto-memory entries; the appropriate action is *graduation* (move to `.claude/rules/` or `CLAUDE.md`) followed by deletion of the now-redundant source file in auto-memory. Do not modify `MEMORY.md` directly.
 
-**`briefing` rule:** Read-only. Reads issue-tracker state and git history, never writes. Surfaces "consider running `/working:promote`" or "consider `/consolidate`" as suggestions, never as automatic actions.
+**`briefing` rule:** Read-only. Reads issue-tracker state and git history, never writes. Surfaces "consider running `/engram:working promote`" or "consider `/engram:consolidate`" as suggestions, never as automatic actions.
 
 **`working` rule:** Operates on `.memory/` (project-relative, gitignored), not on `~/.claude/projects/`. During promotion, decisions small enough not to warrant an ADR can be written into auto-memory using the standard auto-memory frontmatter format — but content written there is then native auto-memory's responsibility and `working` will not re-modify it.
 

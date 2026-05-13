@@ -81,21 +81,21 @@ See [`skills/briefing/SKILL.md`](./skills/briefing/SKILL.md).
 Triggers on phrases like *"checkpoint,"* *"save working memory,"* *"promote working memory,"* *"clean up memory."*
 
 ```
-> /working checkpoint
+> /engram:working checkpoint
 Checkpointed working memory (.memory/):
 - 2 todos added (1 new, 1 existing)
 - 1 decision documented
 - 1 question captured
 
 [3 days later]
-> /working promote
+> /engram:working promote
 Promotion plan for .memory/:
 ## Decisions (1 item)
 1. "Use JWT with refresh tokens" -> new ADR (where do ADRs live? defaulting to docs/adr/042-...)
 ## Todos (2 items)
 1. "Implement token validation" -> [tracker] task
 [user confirms]
-Promoted. Ready for cleanup: /working cleanup
+Promoted. Ready for cleanup: /engram:working cleanup
 ```
 
 The skill prompts the user for promotion targets — it does not assume a specific issue tracker, ADR location, or documentation system.

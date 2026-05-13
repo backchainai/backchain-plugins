@@ -6,7 +6,7 @@ Move `.memory/` artifacts to permanent knowledge locations.
 
 ## Trigger
 
-`/working promote` or natural language: "promote working memory", "move memory to permanent".
+`/engram:working promote` or natural language: "promote working memory", "move memory to permanent".
 
 ## Behavior
 
@@ -91,7 +91,7 @@ Promoted from .memory/:
 - 3 todos -> tracker issues (IDs as returned by the tracker)
 - 1 question -> tracker issue
 
-Ready for cleanup: /working cleanup
+Ready for cleanup: /engram:working cleanup
 ```
 
 ## Constraints
