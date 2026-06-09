@@ -11,7 +11,7 @@ One skill backed by one subagent:
 - **`audit`** (invoked as `/diogenes:audit`) carries the six-category detection framework, the required output format, and the failure modes. It uses `context: fork` and `agent: diogenes:diogenes`, so every invocation runs in a clean subagent context with no access to the upstream conversation, immune to bias from whatever was being discussed before.
 - **`diogenes`** is the subagent that runs the audit. Pinned to `model: sonnet` with read-only tools (`Read, Glob, Grep`) plus `WebFetch`, which lets the auditor read a published page directly when the submission is a URL. Its persona is the senior-reviewer voice that drives the verdict.
 
-Findings cite a fixed set of three peer-reviewed papers, summarized in `skills/audit/references/research.md` (Juzek and Ward 2025, Muñoz-Ortiz 2024, Reinhart et al. 2025). The subagent reads that file when it needs to cite a pattern; citations outside the set are forbidden.
+Findings cite a fixed set of three peer-reviewed papers, summarized in `skills/audit/references/research.md` (Juzek & Ward 2025, Muñoz-Ortiz 2024, Reinhart et al. 2025). The subagent reads that file when it needs to cite a pattern; citations outside the set are forbidden.
 
 ## Layout
 
