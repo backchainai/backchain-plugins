@@ -466,7 +466,10 @@ def aggregate(iteration_path: Path, config: dict[str, Any]) -> dict[str, Any]:
         "grading_model": config["grading_model"],
         "skill_content_hashes": {},
         "skills": {},
-        "aggregate": {mode: {"total_passed": 0, "total_assertions": 0, "total_cost_usd": 0} for mode in MODES},
+        "aggregate": {
+            mode: {"total_passed": 0, "total_assertions": 0, "total_cost_usd": 0, "mean_pass_rate": 0}
+            for mode in MODES
+        },
     }
 
     runs_dir = iteration_path / RUNS_DIR
@@ -559,6 +562,11 @@ def print_summary(benchmark: dict[str, Any]) -> None:
 
     print("-" * 70)
     agg = benchmark["aggregate"]
+    if not any(agg[mode]["total_assertions"] for mode in MODES):
+        print("No graded runs found — every run errored or produced no output.")
+        print("Check the run logs above (auth/API failures surface here).")
+        print()
+        return
     ws_rate = agg["with_skill"]["mean_pass_rate"]
     wos_rate = agg["without_skill"]["mean_pass_rate"]
     delta = agg.get("delta", 0)
