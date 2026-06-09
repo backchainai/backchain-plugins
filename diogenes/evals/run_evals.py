@@ -264,10 +264,21 @@ def run_claude(
         return {}
 
     try:
-        return json.loads(result.stdout)
+        data = json.loads(result.stdout)
     except json.JSONDecodeError:
         print("  ERROR: failed to parse claude JSON output", file=sys.stderr)
         return {}
+
+    # claude can exit 0 yet report a failure in-band (e.g. "Not logged in"
+    # surfaces as is_error=true). Treat that as an error so it is never saved
+    # and graded as a near-zero false pass.
+    subtype = data.get("subtype")
+    if data.get("is_error") or (subtype is not None and subtype != "success"):
+        detail = str(data.get("result") or subtype or "unknown error")[:500]
+        print(f"  ERROR: claude reported failure: {detail}", file=sys.stderr)
+        return {}
+
+    return data
 
 
 def save_run(output_dir: Path, claude_response: dict[str, Any]) -> None:
