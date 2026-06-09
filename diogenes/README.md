@@ -67,6 +67,21 @@ This plugin separates the three concerns:
 - **`skills/audit/SKILL.md`** owns the task: the six-category detection framework, the required output template, and the failure modes.
 - **`skills/audit/references/research.md`** is read on demand inside the fork when the auditor needs to cite a pattern.
 
+## Evaluation
+
+The `audit` skill ships an `evals/evals.json` following the [agentskills.io evaluation specification](https://agentskills.io/skill-creation/evaluating-skills.md), extended with a **verdict label-accuracy** check on top of the report-structure checks.
+
+The runner forks the [engram plugin evaluation framework](../engram/evals/README.md) — same LLM-as-judge methodology, same `claude --bare` clean-room isolation, same git-shorthash iteration provenance. The audit is read-only, so the fs-snapshot machinery is dropped. Each scenario materializes a fixture directory holding a `submission.md` into a tmp workspace, runs the audit against it, and grades the report on two axes: the seven required sections exist (Verdict, Takeaways, Findings table, Structural observations, Authenticity improvements, Human rewrite, Confidence), and the emitted verdict matches the fixture's expected label.
+
+Fixtures span all three verdict labels: `ai-slop` (machine-generated marketing language), `human-voice` (reads as a competent human), and `ai-assisted-but-natural` (LLM may have helped; reads as the author's voice).
+
+See [`evals/README.md`](./evals/README.md) for the runner, fixtures, and how to interpret the with-skill / without-skill delta.
+
+```bash
+# From the repo root
+uv run --project diogenes/evals python diogenes/evals/run_evals.py
+```
+
 ## License and contributing
 
 `diogenes` is released under [Apache-2.0](../LICENSE), the same license as the rest of this repository. Copyright (C) 2026 Backchain LLC. Contributions follow the repository [CONTRIBUTING.md](../CONTRIBUTING.md): Apache-2.0, contributors retain copyright, no CLA or DCO sign-off.

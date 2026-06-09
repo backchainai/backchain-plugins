@@ -1,0 +1,63 @@
+{
+  "skill_name": "audit",
+  "evals": [
+    {
+      "id": 1,
+      "slug": "eval-ai-slop",
+      "fixture": "ai-slop",
+      "verdict": "ai-slop",
+      "prompt": "Audit the content in submission.md. Audience and medium: SMB decision-makers reading a B2B SaaS landing page. Read submission.md first, then return the report.",
+      "expected_output": "An ai-slop verdict with a findings table dense with lexical tells (delve, leverage, unlock, tapestry, realm, seamless), tricolon overuse, definitional throat-clearing, and high-confidence justification. All seven required sections present.",
+      "assertions": [
+        {"text": "The report contains a Verdict section (heading or label reading 'Verdict')", "type": "structural"},
+        {"text": "The report contains a Takeaways section with three to five bullets", "type": "structural"},
+        {"text": "The report contains a Findings table with the columns Quoted span, Category, Pattern, Source, Suggested rewrite", "type": "structural"},
+        {"text": "The report contains a Structural observations section", "type": "structural"},
+        {"text": "The report contains an Authenticity improvements section", "type": "structural"},
+        {"text": "The report contains a Human rewrite section", "type": "structural"},
+        {"text": "The report contains a Confidence section with one of low / medium / high", "type": "structural"},
+        {"text": "The findings table quotes at least three lexical tells present in the submission (such as 'delve', 'leverage', 'unlock', 'tapestry', 'realm', 'seamless', 'empower', 'elevate', 'unparalleled') as exact quoted spans, not paraphrases", "type": "analytical"},
+        {"text": "The report flags tricolon overuse and/or definitional throat-clearing (e.g. the 'Artificial intelligence is the practice of...' opener), citing specific spans", "type": "analytical"},
+        {"text": "The Confidence section justifies its level by naming detected patterns rather than asserting a level with no evidence", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "eval-human-voice",
+      "fixture": "human-voice",
+      "verdict": "human-voice",
+      "prompt": "Audit the content in submission.md. Audience and medium: senior engineers reading a personal engineering blog post. Read submission.md first, then return the report.",
+      "expected_output": "A human-voice verdict. The findings table should be sparse or note no significant tells. Structural observations should reflect high sentence-length variance, high first-person pronoun density, and high specific-detail density. The report must not manufacture tells that aren't present.",
+      "assertions": [
+        {"text": "The report contains a Verdict section (heading or label reading 'Verdict')", "type": "structural"},
+        {"text": "The report contains a Takeaways section", "type": "structural"},
+        {"text": "The report contains a Findings table (it may be sparse or note that few or no tells were found)", "type": "structural"},
+        {"text": "The report contains a Structural observations section", "type": "structural"},
+        {"text": "The report contains an Authenticity improvements section", "type": "structural"},
+        {"text": "The report contains a Human rewrite section", "type": "structural"},
+        {"text": "The report contains a Confidence section", "type": "structural"},
+        {"text": "Structural observations note the strong human signals: high sentence-length variance, high I/we pronoun density, and dense specifics (430ms, 210ms, $1,400/month, 'Sara', 'Black Friday 2023')", "type": "analytical"},
+        {"text": "The report does NOT fabricate lexical or structural tells that are absent from the submission, and does not flag the genuine specifics as problems", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "eval-ai-assisted-but-natural",
+      "fixture": "ai-assisted-but-natural",
+      "verdict": "ai-assisted-but-natural",
+      "prompt": "Audit the content in submission.md. Audience and medium: backend engineers reading a company engineering blog post. Read submission.md first, then return the report.",
+      "expected_output": "An ai-assisted-but-natural verdict: the prose is clean and may have had LLM help, but it carries real specifics (2M tasks/day, SQS, procrastinate, $200/month, refunded customers) and a lived-experience arc. The report should note minor smoothness tells without escalating to ai-slop.",
+      "assertions": [
+        {"text": "The report contains a Verdict section (heading or label reading 'Verdict')", "type": "structural"},
+        {"text": "The report contains a Takeaways section", "type": "structural"},
+        {"text": "The report contains a Findings table with the expected columns", "type": "structural"},
+        {"text": "The report contains a Structural observations section", "type": "structural"},
+        {"text": "The report contains an Authenticity improvements section", "type": "structural"},
+        {"text": "The report contains a Human rewrite section", "type": "structural"},
+        {"text": "The report contains a Confidence section", "type": "structural"},
+        {"text": "The report acknowledges the genuine specifics and lived-experience arc (named tools, dollar figures, the idempotency bug and refunds) as evidence the text reads in the author's voice, not as marketing slop", "type": "analytical"},
+        {"text": "The report does not escalate to an ai-slop verdict on the strength of clean prose alone; it requires clustered evidence across categories and does not find it here", "type": "analytical"}
+      ]
+    }
+  ]
+}
