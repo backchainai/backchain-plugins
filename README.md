@@ -31,6 +31,19 @@ Three skills for explicit memory operations that complement Claude Code's native
 
 Tool-agnostic: prompts the user for issue-tracker / ADR / docs locations rather than assuming a specific stack.
 
+### [Diogenes](./diogenes)
+
+**AI-slop content audit**
+
+Named for the Cynic who walked Athens in daylight with a lit lamp looking for an honest man. The `slop-audit` skill forks a Sonnet subagent into a clean context, immune to upstream conversation bias, and judges whether a piece of writing reads as a competent human's work or as forwarded LLM output. It returns a verdict, an attributable findings table (quoted spans, named patterns, cited research), structural metrics, and a human rewrite of the weakest passage.
+
+| Element | Purpose |
+|---------|---------|
+| **slop-audit** | Six-category detection framework, required output format, and failure modes |
+| **diogenes** | Senior-reviewer subagent (Sonnet, read-only tools plus WebFetch) that runs the audit |
+
+Findings cite a fixed set of three peer-reviewed papers (Juzek & Ward 2025, Muñoz-Ortiz 2024, Reinhart et al. 2025); citations outside that set are forbidden.
+
 ## Marketplace Installation
 
 ### From GitHub (recommended)
@@ -39,6 +52,7 @@ Tool-agnostic: prompts the user for issue-tracker / ADR / docs locations rather 
 /plugin marketplace add backchainai/backchain-plugins
 /plugin install advisors@backchain-plugins
 /plugin install engram@backchain-plugins
+/plugin install diogenes@backchain-plugins
 ```
 
 ### Local Development
@@ -48,6 +62,7 @@ git clone https://github.com/backchainai/backchain-plugins.git
 /plugin marketplace add ./backchain-plugins
 /plugin install advisors@backchain-plugins
 /plugin install engram@backchain-plugins
+/plugin install diogenes@backchain-plugins
 ```
 
 ## License
