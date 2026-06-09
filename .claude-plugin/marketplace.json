@@ -19,6 +19,11 @@
       "name": "engram",
       "source": "./engram",
       "description": "Filesystem-backed agent memory for Claude Code"
+    },
+    {
+      "name": "diogenes",
+      "source": "./diogenes",
+      "description": "Senior-reviewer audit for AI-slop and LLM-generation tells in written content"
     }
   ]
 }
