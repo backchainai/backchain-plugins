@@ -3,10 +3,11 @@
   "description": "Team of Rivals advisory panel — four independent advisors for multi-role decision analysis",
   "version": "1.0.0",
   "author": {
-    "name": "Backchain",
-    "url": "https://backchain.ai"
+    "name": "Chris Krough",
+    "email": "dev@krough.org",
+    "url": "https://dev.krough.org"
   },
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "keywords": [
     "decision-analysis",
     "advisory",

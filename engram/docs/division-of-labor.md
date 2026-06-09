@@ -1,7 +1,5 @@
 # Division of Labor: engram and Claude Code Native Memory
 
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
-
 This document describes what Claude Code handles natively, what `engram` adds on top, and how the two are designed to coexist without stepping on each other.
 
 ## What Claude Code does natively

@@ -1,5 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
-
 # Command: promote
 
 Move `.memory/` artifacts to permanent knowledge locations.

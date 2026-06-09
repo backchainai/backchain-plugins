@@ -1,4 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
 ---
 name: working
 description: "Manage ephemeral .memory/ conversation state across multi-day sessions. Checkpoint todos, decisions, and questions; promote artifacts to permanent knowledge; clean up after promotion. Use when: the user says 'checkpoint', 'save working memory', 'promote working memory', 'clean up memory', wants to persist conversation artifacts for a future session, or resumes work and asks 'what were we working on' near a .memory/ directory. Do not trigger for native auto-memory operations."

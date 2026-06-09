@@ -1,5 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
-
 # Command: cleanup
 
 Delete promoted content from the `.memory/` directory.

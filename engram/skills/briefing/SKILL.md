@@ -1,4 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
 ---
 name: briefing
 description: "Assembles a session context briefing from your configured issue tracker, recent git history, and active work signals. Use when: starting a new session, resuming after a break, user says 'catch me up', 'what was I working on', 'where did I leave off', context recovery after compaction, or user asks for project orientation. Complements Claude Code's native /recap (which auto-triggers after extended idle); briefing is invoked explicitly and pulls from cross-tool sources native /recap does not aggregate."

@@ -1,5 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
-
 # Command: checkpoint
 
 Create or update `.memory/` with current conversation state.

@@ -1,4 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
 ---
 title: Knowledge Directory Registry
 purpose: Common knowledge-directory patterns and exclusion rules for the consolidate skill.

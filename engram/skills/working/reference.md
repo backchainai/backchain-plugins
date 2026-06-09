@@ -1,4 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
 ---
 title: Working Memory Reference
 purpose: Worked example, integration notes, and error handling for the working skill.
