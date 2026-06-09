@@ -8,10 +8,10 @@
 
 One skill backed by one subagent:
 
-- **`slop-audit`** (invoked as `/diogenes:slop-audit`) carries the six-category detection framework, the required output format, and the failure modes. It uses `context: fork` and `agent: diogenes:diogenes`, so every invocation runs in a clean subagent context with no access to the upstream conversation, immune to bias from whatever was being discussed before.
+- **`audit`** (invoked as `/diogenes:audit`) carries the six-category detection framework, the required output format, and the failure modes. It uses `context: fork` and `agent: diogenes:diogenes`, so every invocation runs in a clean subagent context with no access to the upstream conversation, immune to bias from whatever was being discussed before.
 - **`diogenes`** is the subagent that runs the audit. Pinned to `model: sonnet` with read-only tools (`Read, Glob, Grep`) plus `WebFetch`, which lets the auditor read a published page directly when the submission is a URL. Its persona is the senior-reviewer voice that drives the verdict.
 
-Findings cite a fixed set of three peer-reviewed papers, summarized in `skills/slop-audit/references/research.md` (Juzek and Ward 2025, Muñoz-Ortiz 2024, Reinhart et al. 2025). The subagent reads that file when it needs to cite a pattern; citations outside the set are forbidden.
+Findings cite a fixed set of three peer-reviewed papers, summarized in `skills/audit/references/research.md` (Juzek and Ward 2025, Muñoz-Ortiz 2024, Reinhart et al. 2025). The subagent reads that file when it needs to cite a pattern; citations outside the set are forbidden.
 
 ## Layout
 
@@ -22,7 +22,7 @@ diogenes/
 ├── agents/
 │   └── diogenes.md                     subagent: persona, tools, model: sonnet
 └── skills/
-    └── slop-audit/
+    └── audit/
         ├── SKILL.md                    fork target, six-category framework, output spec
         └── references/
             └── research.md             vetted citation set
@@ -50,12 +50,12 @@ git clone https://github.com/backchainai/backchain-plugins.git
 Direct:
 
 ```
-/diogenes:slop-audit <text-or-file-or-url> <audience-and-medium>
+/diogenes:audit <text-or-file-or-url> <audience-and-medium>
 ```
 
 Natural language also triggers the skill: "does this sound like AI", "audit this bio", "review my LinkedIn post for voice", "is this too ChatGPT". The trigger phrases live in the skill's `description` frontmatter.
 
-Plugin skills are namespaced, so the bare `/slop-audit` form is not available; the full invocation is `/diogenes:slop-audit`. Namespacing prevents conflicts when multiple plugins ship skills with the same short name.
+Plugin skills are namespaced, so the bare `/audit` form is not available; the full invocation is `/diogenes:audit`. Namespacing prevents conflicts when multiple plugins ship skills with the same short name.
 
 ## Design
 
@@ -64,8 +64,8 @@ The pattern for "run a bounded operation on a target document in clean context" 
 This plugin separates the three concerns:
 
 - **`agents/diogenes.md`** owns the persona, model, and tool surface.
-- **`skills/slop-audit/SKILL.md`** owns the task: the six-category detection framework, the required output template, and the failure modes.
-- **`skills/slop-audit/references/research.md`** is read on demand inside the fork when the auditor needs to cite a pattern.
+- **`skills/audit/SKILL.md`** owns the task: the six-category detection framework, the required output template, and the failure modes.
+- **`skills/audit/references/research.md`** is read on demand inside the fork when the auditor needs to cite a pattern.
 
 ## License and contributing
 

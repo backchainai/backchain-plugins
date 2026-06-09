@@ -35,11 +35,11 @@ Tool-agnostic: prompts the user for issue-tracker / ADR / docs locations rather 
 
 **AI-slop content audit**
 
-Named for the Cynic who walked Athens in daylight with a lit lamp looking for an honest man. The `slop-audit` skill forks a Sonnet subagent into a clean context, immune to upstream conversation bias, and judges whether a piece of writing reads as a competent human's work or as forwarded LLM output. It returns a verdict, an attributable findings table (quoted spans, named patterns, cited research), structural metrics, and a human rewrite of the weakest passage.
+Named for the Cynic who walked Athens in daylight with a lit lamp looking for an honest man. The `audit` skill (invoked as `/diogenes:audit`) forks a Sonnet subagent into a clean context, immune to upstream conversation bias, and judges whether a piece of writing reads as a competent human's work or as forwarded LLM output. It returns a verdict, an attributable findings table (quoted spans, named patterns, cited research), structural metrics, and a human rewrite of the weakest passage.
 
 | Element | Purpose |
 |---------|---------|
-| **slop-audit** | Six-category detection framework, required output format, and failure modes |
+| **audit** | Six-category detection framework, required output format, and failure modes |
 | **diogenes** | Senior-reviewer subagent (Sonnet, read-only tools plus WebFetch) that runs the audit |
 
 Findings cite a fixed set of three peer-reviewed papers (Juzek & Ward 2025, Muñoz-Ortiz 2024, Reinhart et al. 2025); citations outside that set are forbidden.

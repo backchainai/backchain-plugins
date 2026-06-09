@@ -1,5 +1,5 @@
 ---
-name: slop-audit
+name: audit
 description: Audit written content for AI-slop and LLM-generation tells, then return a senior-reviewer report with verdict, attributable findings, authenticity fixes, and a human rewrite. Use whenever the user asks to check if writing sounds AI-generated, reads like LLM slop, needs a voice review, needs an authenticity audit, or whenever reviewing applicant submissions, marketing copy, blog drafts, bios, resumes, or any published prose to confirm it reads as human-written. Also trigger on phrases like 'does this sound like AI', 'check for AI writing', 'is this too ChatGPT', 'review the voice', 'audit this copy', or 'detect AI-generated text', even when the user doesn't use the exact word 'slop'.
 context: fork
 agent: diogenes:diogenes
