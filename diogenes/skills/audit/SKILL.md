@@ -27,7 +27,11 @@ Apply these six categories in order. Note specific spans for each tell.
 
 ### 1. Lexical tells
 
-Tokens overrepresented in LLM output (Juzek & Ward, COLING 2025): **delve, robust, leverage, intricate, underscore, seamless, navigate, enhance, facilitate, realm, tapestry, landscape, elevate, empower, unlock, unparalleled, foster, showcase.**
+Focal words whose frequency jumped in post-ChatGPT text (Juzek & Ward, COLING 2025; `arxiv:2412.11385`): **delve, delves, delving, showcasing, showcases, boasts, underscores, underscoring, underscore, comprehending, intricacies, intricate, surpassing, garnered, emphasizing, realm, groundbreaking, advancements, aligns.**
+
+GPT-4o lexical overuse relative to human text (Reinhart et al., PNAS 2025; `arxiv:2410.16107`): **camaraderie, tapestry, intricate, underscore, unspoken, amidst, palpable, solace, fleeting, unravel.** (`intricate` and `underscore` appear in both lists.)
+
+Common LLM tells not tied to a single study (cite as general slop markers, not to a paper): **robust, leverage, seamless, navigate, enhance, facilitate, landscape, elevate, empower, unlock, unparalleled, foster.**
 
 Phrases that recur in LLM output: "it is important to note," "in today's fast-paced world," "navigate the landscape," "dive into," "at its core," "in the realm of," "unlock the potential," "here's what you need to know."
 
@@ -35,15 +39,15 @@ Flag any cluster of three or more within a short passage, or use of a signature 
 
 ### 2. Structural and syntactic patterns
 
-- **Tricolon overuse**: "X, Y, and Z" constructions. Eight or more in a piece shifts probability toward AI authorship. Reinhart et al. report phrasal coordination at 1.9x human rate in GPT-4o; see `${CLAUDE_SKILL_DIR}/references/research.md`.
-- **Uniform sentence length**: LLM output concentrates in the 10 to 30 token band; human writing scatters with short fragments and long runs.
+- **Tricolon overuse**: "X, Y, and Z" constructions. Eight or more in a piece shifts probability toward AI authorship. Reinhart et al. report phrasal coordination at 1.9x human rate in GPT-4o (`arxiv:2410.16107`); see `${CLAUDE_SKILL_DIR}/references/research.md`.
+- **Uniform sentence length**: LLM output concentrates in the 10 to 30 token band; human writing scatters with short fragments and long runs. Muñoz-Ortiz et al. report this sentence-length clustering (AI Review 2024); see references file.
 - **Ascending parallelism**: tricolons where each item grows longer by design.
 - **Pronoun suppression**: low "I," "we," "you" density when the topic is personal.
 - **Passive voice and nominalization**: "Findings suggest" instead of "I found."
 
 ### 3. Rhetorical patterns
 
-- **Hedging while sounding certain**: "arguably," "it could be said," "this may suggest" inside otherwise confident prose. Reinhart et al. find GPT-4o overuses downtoners; see references file.
+- **Hedging while sounding certain**: "arguably," "it could be said," "this may suggest" inside otherwise confident prose. Reinhart et al. find GPT-4o overuses downtoners (`arxiv:2410.16107`); see references file.
 - **Definitional throat-clearing**: opening with "The Model Context Protocol is the interface between the agent and the outside world" when the audience already knows MCP.
 - **Transition overuse**: "Furthermore," "Moreover," "It's worth noting," "It's important to note," "In conclusion."
 - **False balance**: uniformly positive framing with no trade-off acknowledged.
@@ -54,7 +58,7 @@ Flag any cluster of three or more within a short passage, or use of a signature 
 - **Abstract third person where first person is natural**: methodology, bio, and opinion content in third person reads as generated.
 - **Consultant or marketing register bleed**: "solutions," "ecosystems," "stakeholders," "value drivers," "strategic alignment" appearing in technical or personal writing.
 - **Missing specifics**: no numbers, names, dates, versions, dollar amounts, failure modes, or idiosyncratic details.
-- **Missing lived experience**: no "I tried X, it broke, so I switched to Y" narratives. Reinhart et al., PNAS 2025; see references file.
+- **Missing lived experience**: no "I tried X, it broke, so I switched to Y" narratives.
 
 ### 5. Meta-signals
 
@@ -106,7 +110,7 @@ One row per issue. Exact columns:
 - **Quoted span**: exact text from the submission, in quotes. No paraphrase.
 - **Category**: one of `lexical`, `structural`, `rhetorical`, `voice`, `meta`, `honest-vs-hype`, or a preserved-rule violation (`em-dash`, `negation-contrast`, `two-beat-antithesis`, `definitional-intro`, `aphoristic-closer`, `third-person-voice`).
 - **Pattern**: the specific tell (for example, "tricolon overuse," "definitional throat-clearing," "delve token").
-- **Source**: the rule or research citation (for example, `writing-voice:negation-contrast`, `arxiv:2412.11385`).
+- **Source**: the rule or research citation, paired with the paper that actually reports the pattern. A lexical "delve" finding cites `arxiv:2412.11385` (Juzek & Ward); a structural finding (phrasal coordination, present-participial clause, downtoner) cites `arxiv:2410.16107` (Reinhart et al.); a morphosyntax finding (sentence-length clustering, POS shares) cites Muñoz-Ortiz et al. Editorial-rule violations cite the rule (for example, `writing-voice:negation-contrast`).
 - **Suggested rewrite**: a concrete replacement span, in the voice the author should be using.
 
 ### 4. Structural observations
