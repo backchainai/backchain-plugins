@@ -14,12 +14,15 @@ Thumbs.db
 # Eval workspaces (ephemeral results from skill evaluation runs)
 advisors-workspace/
 engram-workspace/
+diogenes-workspace/
 
 # Eval tooling
 advisors/evals/.venv/
 advisors/evals/.env
 engram/evals/.venv/
 engram/evals/.env
+diogenes/evals/.venv/
+diogenes/evals/.env
 
 # Local git worktrees (not tracked)
 .worktrees/

@@ -1,0 +1,17 @@
+workspace: diogenes-workspace
+model: claude-sonnet-4-6
+grading_model: claude-haiku-4-5
+
+# Each skill declares:
+#   path: skill directory (relative to repo root)
+#   baseline_prompt: what a user would reasonably type without the skill
+#   fixture_root: directory holding per-scenario fixture trees (relative to repo root).
+#     Each fixture directory contains a submission.md the audit reads as its input.
+#   tools: comma-separated tool list granted during the run. The audit is read-only;
+#     Read lets it pick up the materialized submission.md from the workspace.
+skills:
+  audit:
+    path: diogenes/skills/audit
+    baseline_prompt: "Read submission.md and review it for AI-slop and LLM-generation tells. Give me a verdict on whether it reads as human-written, AI-assisted but natural, or machine-generated slop, plus specific findings and a rewrite."
+    fixture_root: diogenes/evals/fixtures
+    tools: "Read"
