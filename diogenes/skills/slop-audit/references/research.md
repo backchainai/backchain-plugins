@@ -2,6 +2,8 @@
 
 The audit-ai-slop skill cites three peer-reviewed papers. This file holds a short summary of each, the specific LLM-generation signals each one identified, and direct links. Treat this set as vetted. Audit findings should cite from here, not invent new sources.
 
+**Attribution and copyright.** The three works summarized below are third-party scholarship, copyright their respective authors and publishers. They are cited and summarized here for reference under normal academic fair-use practice; this repository's Apache-2.0 license covers these summaries, not the underlying papers, which remain governed by their own terms at the linked sources. The signal lists are factual descriptions of each paper's findings, and the short illustrative phrases are quoted for commentary. In any downstream work, cite the authoritative source (the DOI or arxiv link with each entry), not this summary.
+
 ---
 
 ## 1. Juzek & Ward (COLING 2025), "Why Does ChatGPT 'Delve' So Much?"

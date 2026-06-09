@@ -3,10 +3,11 @@
   "description": "Senior-reviewer audit for AI-slop and LLM-generation tells in written content. The slop-audit skill forks into the diogenes subagent (Sonnet, read-only tools plus WebFetch) and returns a verdict, attributable findings, authenticity improvements, and a human rewrite.",
   "version": "0.1.0",
   "author": {
-    "name": "Backchain",
-    "url": "https://backchain.ai"
+    "name": "Chris Krough",
+    "email": "dev@krough.org",
+    "url": "https://dev.krough.org"
   },
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "keywords": [
     "ai-slop",
     "content-audit",

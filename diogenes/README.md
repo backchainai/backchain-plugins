@@ -66,3 +66,7 @@ This plugin separates the three concerns:
 - **`agents/diogenes.md`** owns the persona, model, and tool surface.
 - **`skills/slop-audit/SKILL.md`** owns the task: the six-category detection framework, the required output template, and the failure modes.
 - **`skills/slop-audit/references/research.md`** is read on demand inside the fork when the auditor needs to cite a pattern.
+
+## License and contributing
+
+`diogenes` is released under [Apache-2.0](../LICENSE), the same license as the rest of this repository. Copyright (C) 2026 Backchain LLC. Contributions follow the repository [CONTRIBUTING.md](../CONTRIBUTING.md): Apache-2.0, contributors retain copyright, no CLA or DCO sign-off.
