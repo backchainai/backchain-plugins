@@ -28,8 +28,6 @@ from typing import Any
 
 import yaml
 
-# SPDX-License-Identifier: AGPL-3.0-only
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent.parent
 

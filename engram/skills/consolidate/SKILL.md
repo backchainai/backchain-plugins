@@ -1,4 +1,3 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-only -->
 ---
 name: consolidate
 description: "Audit knowledge directories (.memory/, docs/, staging/, archive/) and Claude Code auto memory for stale, misplaced, or duplicated content. Generates an editable cleanup plan file, then executes approved actions after review. Use when: periodic knowledge cleanup, after project milestones, files feel scattered or disorganized, output staging feels cluttered, moving deliverables to permanent homes. Trigger phrases: consolidate knowledge, knowledge cleanup, audit knowledge directories, find stray docs, tidy up knowledge, triage outputs, review staging, clean up outputs."

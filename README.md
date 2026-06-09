@@ -1,6 +1,6 @@
 # backchain-plugins
 
-Claude Code plugins by [Backchain](https://backchain.ai). All plugins in this repository conform to the [agentskills.io specification](https://agentskills.io/specification) and ship under [AGPL-3.0-only](./LICENSE) with a Backchain commercial-license reservation (see [License](#license) below).
+Claude Code plugins by [Backchain](https://backchain.ai). All plugins in this repository conform to the [agentskills.io specification](https://agentskills.io/specification) and are released as open source under [Apache-2.0](./LICENSE).
 
 ## Plugins
 
@@ -52,18 +52,16 @@ git clone https://github.com/backchainai/backchain-plugins.git
 
 ## License
 
-This repository is licensed under [AGPL-3.0-only](./LICENSE). AGPL closes the SaaS loophole that permissive licenses leave open: a competitor offering a hosted version of any plugin in this repository must release their modifications.
+Licensed under the [Apache License 2.0](./LICENSE). Copyright (C) 2026 Backchain LLC.
 
-## Commercial license
+Use, modify, and redistribute these plugins freely, including in commercial and proprietary work, under the terms of the license. See [NOTICE](./NOTICE) for attribution that travels with redistribution.
 
-The contents of this repository are offered publicly under AGPL-3.0-only. Backchain LLC, as sole copyright holder, reserves the right to offer the same code under alternate commercial terms — including for proprietary or SaaS use that the AGPL would otherwise constrain.
+## About
 
-If your use case requires a non-AGPL license, contact us at [backchain.ai](https://backchain.ai).
+Published by [Backchain](https://backchain.ai): **Discover Where AI Works**. Backchain builds practical agent tooling for Claude Code. Authored by [Chris Krough](https://dev.krough.org) ([LinkedIn](https://www.linkedin.com/in/ckrough)).
+
+If these plugins are useful, install them, star the repo, and explore more at [backchain.ai](https://backchain.ai).
 
 ## Contributing
 
-External contributions are welcome under [AGPL-3.0-only](./LICENSE) with a [Developer Certificate of Origin](https://developercertificate.org/) sign-off. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full posture and the per-PR checklist.
-
-```bash
-git commit -s -m "feat(<plugin>): describe your change"
-```
+Contributions are welcome under [Apache-2.0](./LICENSE); contributors retain copyright on their work. No CLA and no DCO sign-off required. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the per-PR checklist.

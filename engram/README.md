@@ -155,10 +155,8 @@ uv run --project engram/evals python engram/evals/run_evals.py
 
 ## License and contributing
 
-`engram` ships under [AGPL-3.0-only](../LICENSE) with a Backchain commercial-license reservation, the same posture as the rest of this repository. See the [repository root README](../README.md#license) for the rationale and the commercial-license contact path. External contributions follow the repository [CONTRIBUTING.md](../CONTRIBUTING.md).
-
-`engram` runs as agent-skill files (system-prompt injection, not statically linked code). The AGPL's "Corresponding Source" requirement reaches the plugin and its modifications, not arbitrary platform code that uses the plugin at runtime.
+`engram` is released under [Apache-2.0](../LICENSE), the same license as the rest of this repository. Copyright (C) 2026 Backchain LLC. Contributions follow the repository [CONTRIBUTING.md](../CONTRIBUTING.md): Apache-2.0, contributors retain copyright, no CLA or DCO sign-off.
 
 ## Credits
 
-Built by [Backchain](https://backchain.ai). Conforms to the [agentskills.io specification](https://agentskills.io/specification). Evaluation framework borrowed from the sibling [Advisors plugin](../advisors/).
+Published by [Backchain](https://backchain.ai). Authored by [Chris Krough](https://dev.krough.org). Conforms to the [agentskills.io specification](https://agentskills.io/specification). Evaluation framework borrowed from the sibling [Advisors plugin](../advisors/).

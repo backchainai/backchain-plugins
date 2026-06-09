@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: backchain-plugins
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Krough
+    given-names: Chris
+    alias: ckrough
+    email: dev@krough.org
+repository-code: "https://github.com/backchainai/backchain-plugins"
+url: "https://backchain.ai"
+license: Apache-2.0

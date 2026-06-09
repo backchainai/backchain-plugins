@@ -3,10 +3,11 @@
   "description": "Filesystem-backed agent memory for Claude Code",
   "version": "1.0.0",
   "author": {
-    "name": "Backchain",
-    "url": "https://backchain.ai"
+    "name": "Chris Krough",
+    "email": "dev@krough.org",
+    "url": "https://dev.krough.org"
   },
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "keywords": [
     "memory",
     "recollection",
