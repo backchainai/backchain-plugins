@@ -27,7 +27,7 @@ Apply these six categories in order. Note specific spans for each tell.
 
 ### 1. Lexical tells
 
-Tokens overrepresented in LLM output (Juzek and Ward, COLING 2025): **delve, robust, leverage, intricate, underscore, seamless, navigate, enhance, facilitate, realm, tapestry, landscape, elevate, empower, unlock, unparalleled, foster, showcase.**
+Tokens overrepresented in LLM output (Juzek & Ward, COLING 2025): **delve, robust, leverage, intricate, underscore, seamless, navigate, enhance, facilitate, realm, tapestry, landscape, elevate, empower, unlock, unparalleled, foster, showcase.**
 
 Phrases that recur in LLM output: "it is important to note," "in today's fast-paced world," "navigate the landscape," "dive into," "at its core," "in the realm of," "unlock the potential," "here's what you need to know."
 
