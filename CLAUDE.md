@@ -9,6 +9,9 @@ A Claude Code plugin marketplace by [Backchain](https://backchain.ai), published
 ## Plugins
 
 - **advisors** — Decision analysis advisory panel (Team of Rivals)
+- **engram** — Filesystem-backed agent memory (consolidate, briefing, working)
+- **diogenes** — AI-slop content audit (senior-reviewer subagent)
+- **brief** — Interactive HTML briefs for plans, specs, and decisions
 
 ## Architecture
 

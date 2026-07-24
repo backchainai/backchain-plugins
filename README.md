@@ -44,6 +44,16 @@ Named for the Cynic who walked Athens in daylight with a lit lamp looking for an
 
 Findings cite a fixed set of three peer-reviewed papers (Juzek & Ward 2025, Muñoz-Ortiz 2024, Reinhart et al. 2025); citations outside that set are forbidden.
 
+### [Brief](./brief)
+
+**Interactive HTML briefs**
+
+Plans, specs, option comparisons, and annotated reviews are spatial information a markdown wall flattens. The `brief` skill (invoked as `/brief:brief`, or by description on phrases like "give me a plan" or "compare X vs Y") renders them as a single self-contained `.html` file with inline decision controls and a sticky copy-to-prompt button. You read, navigate, and pick inside the artifact; your choices return as a clean execution prompt for the next context window. The skill inherits each project's visual identity from its rules rather than hardcoding a palette.
+
+| Element | Purpose |
+|---------|---------|
+| **brief** | Component contract, two-track prompt rendering, and anti-patterns for the interactive brief, plus a self-contained reference example |
+
 ## Marketplace Installation
 
 ### From GitHub (recommended)
@@ -53,6 +63,7 @@ Findings cite a fixed set of three peer-reviewed papers (Juzek & Ward 2025, Muñ
 /plugin install advisors@backchain-plugins
 /plugin install engram@backchain-plugins
 /plugin install diogenes@backchain-plugins
+/plugin install brief@backchain-plugins
 ```
 
 ### Local Development
@@ -63,6 +74,7 @@ git clone https://github.com/backchainai/backchain-plugins.git
 /plugin install advisors@backchain-plugins
 /plugin install engram@backchain-plugins
 /plugin install diogenes@backchain-plugins
+/plugin install brief@backchain-plugins
 ```
 
 ## License

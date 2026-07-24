@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brief · Add a caching layer to the read API</title>
+<style>
+  :root {
+    --color-bg: #f7f7f5;
+    --color-surface: #ffffff;
+    --color-heading: #1c1c1e;
+    --color-text: #2e2e32;
+    --color-muted: #6b6b73;
+    --color-border: #dcdcd6;
+    --color-accent: #2b6cb0;
+    --color-accent-soft: #e7f0f8;
+    --font-sans: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --text-small: 0.85rem;
+    --space-xs: 0.35rem;
+    --space-sm: 0.6rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --radius-md: 8px;
+    --radius-sm: 5px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-bg: #17181b;
+      --color-surface: #212227;
+      --color-heading: #f2f2f4;
+      --color-text: #d7d7db;
+      --color-muted: #9a9aa2;
+      --color-border: #34353b;
+      --color-accent: #6ab0f3;
+      --color-accent-soft: #1d2b3a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    padding-bottom: 6rem;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: var(--space-lg); }
+  h1, h2, h3 { color: var(--color-heading); line-height: 1.25; }
+  h2 { margin-top: var(--space-lg); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-xs); }
+  a { color: var(--color-accent); }
+  code { font-family: var(--font-mono); font-size: 0.9em; background: color-mix(in srgb, var(--color-heading) 8%, var(--color-surface)); padding: 0.1em 0.35em; border-radius: 4px; }
+  pre.frontmatter {
+    background: color-mix(in srgb, var(--color-heading) 6%, var(--color-surface));
+    color: var(--color-heading);
+    font-family: var(--font-mono);
+    font-size: var(--text-small);
+    line-height: 1.7;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    margin: 0 0 var(--space-lg);
+    white-space: pre-wrap;
+    word-break: break-word;
+    border: 1px solid var(--color-border);
+  }
+  pre.frontmatter .k { color: var(--color-accent); }
+  .intro { font-size: 1.02rem; }
+  fieldset {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    padding: var(--space-md) var(--space-lg);
+    margin: var(--space-md) 0;
+  }
+  legend { font-weight: 600; color: var(--color-heading); padding: 0 var(--space-sm); }
+  .preset-bar { display: flex; flex-wrap: wrap; gap: var(--space-md); }
+  .opt { display: flex; align-items: flex-start; gap: var(--space-sm); padding: var(--space-xs) 0; min-height: 2.6rem; }
+  .opt label { cursor: pointer; }
+  .opt .desc { display: block; color: var(--color-muted); font-size: var(--text-small); }
+  input[type="radio"], input[type="checkbox"] { width: 1.15rem; height: 1.15rem; margin-top: 0.15rem; accent-color: var(--color-accent); flex: 0 0 auto; }
+  .comment { margin-top: var(--space-sm); }
+  .comment label { display: block; font-size: var(--text-small); color: var(--color-muted); margin-bottom: var(--space-xs); }
+  input[type="text"], textarea {
+    width: 100%;
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    color: var(--color-text);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+  }
+  textarea { min-height: 5rem; resize: vertical; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .rec { font-size: var(--text-small); color: var(--color-accent); font-weight: 600; }
+
+  .panel {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -6px 24px rgba(0,0,0,0.12);
+    z-index: 50;
+  }
+  .panel-inner { max-width: 880px; margin: 0 auto; padding: var(--space-sm) var(--space-lg); }
+  .panel-head { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+  .panel-head h2 { border: 0; margin: 0; font-size: 1rem; flex: 1 1 auto; }
+  button {
+    font: inherit; font-weight: 600;
+    min-height: 2.75rem; padding: 0 var(--space-md);
+    border-radius: var(--radius-sm); border: 1px solid var(--color-border);
+    background: var(--color-surface); color: var(--color-heading); cursor: pointer;
+  }
+  button.primary { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  #previewRegion { overflow: hidden; transition: height 0.2s ease; }
+  #previewRegion[hidden] { display: block; height: 0 !important; }
+  pre.prompt {
+    font-family: var(--font-mono); font-size: var(--text-small); line-height: 1.6;
+    background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+    padding: var(--space-md); margin: var(--space-sm) 0 0;
+    white-space: pre-wrap; word-break: break-word; max-height: 40vh; overflow: auto;
+  }
+  pre.prompt a { word-break: break-all; }
+  .toast {
+    position: fixed; bottom: 6.5rem; left: 50%; transform: translateX(-50%);
+    background: var(--color-heading); color: var(--color-bg);
+    padding: var(--space-sm) var(--space-md); border-radius: var(--radius-sm);
+    font-size: var(--text-small); opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+  }
+  .toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    #previewRegion, .toast { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="brief-header">
+    <pre class="frontmatter"><span class="k">prepared_by</span>: Claude Code
+<span class="k">model</span>: claude-opus-4-8[1m]
+<span class="k">timestamp</span>: 2026-07-24T09:44:05-04:00
+<span class="k">description</span>: Decide how to add a read-path caching layer to the public API before implementation begins.</pre>
+  </header>
+
+  <p class="intro">The read API is spending most of its latency budget re-querying the primary datastore for data that changes rarely. This brief scopes a caching layer: where cached values live, how they are invalidated, and how the change ships. Pick a preset or adjust individual decisions, then copy the execution prompt for the implementing agent. The <strong>Standard</strong> preset is the recommended path and is selected on load.</p>
+
+  <fieldset class="preset-bar">
+    <legend>Preset</legend>
+    <div class="opt">
+      <input type="radio" name="preset" id="preset-lean" value="lean">
+      <label for="preset-lean">Lean<span class="desc">In-memory cache, TTL-only, behind a flag</span></label>
+    </div>
+    <div class="opt">
+      <input type="radio" name="preset" id="preset-standard" value="standard" checked>
+      <label for="preset-standard">Standard <span class="rec">· recommended</span><span class="desc">Redis, TTL-only, behind a flag</span></label>
+    </div>
+    <div class="opt">
+      <input type="radio" name="preset" id="preset-comprehensive" value="comprehensive">
+      <label for="preset-comprehensive">Comprehensive<span class="desc">Redis, TTL + event invalidation, behind a flag</span></label>
+    </div>
+  </fieldset>
+
+  <h2>1 · Cache store</h2>
+  <fieldset>
+    <legend>Where do cached values live?</legend>
+    <div class="opt"><input type="radio" name="store" id="store-memory" value="memory"><label for="store-memory">In-process memory<span class="desc">Zero new infra; lost on restart, not shared across instances</span></label></div>
+    <div class="opt"><input type="radio" name="store" id="store-redis" value="redis"><label for="store-redis">Redis<span class="desc">Shared across instances, survives restarts; adds a dependency</span></label></div>
+    <div class="opt"><input type="radio" name="store" id="store-none" value="none"><label for="store-none">No store (defer)<span class="desc">Ship other work first; revisit caching later</span></label></div>
+    <div class="comment"><label for="store-note">Comment (optional)</label><input type="text" id="store-note" data-note="Cache store"></div>
+  </fieldset>
+
+  <h2>2 · Invalidation</h2>
+  <fieldset>
+    <legend>How do stale entries get evicted?</legend>
+    <div class="opt"><input type="radio" name="invalidation" id="inv-ttl" value="ttl"><label for="inv-ttl">TTL only<span class="desc">Simple; tolerates brief staleness up to the TTL window</span></label></div>
+    <div class="opt"><input type="radio" name="invalidation" id="inv-event" value="ttl-event"><label for="inv-event">TTL + event-based<span class="desc">Writes publish invalidation events; fresher, more moving parts</span></label></div>
+    <div class="opt"><input type="radio" name="invalidation" id="inv-manual" value="manual"><label for="inv-manual">Manual only<span class="desc">Operator-triggered flush; simplest, easiest to forget</span></label></div>
+    <div class="comment"><label for="inv-note">Comment (optional)</label><input type="text" id="inv-note" data-note="Invalidation"></div>
+  </fieldset>
+
+  <h2>3 · Rollout</h2>
+  <fieldset>
+    <legend>How does it reach production?</legend>
+    <div class="opt"><input type="radio" name="rollout" id="roll-flag" value="flag"><label for="roll-flag">Behind a feature flag<span class="desc">Dark-launch, ramp gradually, instant kill switch</span></label></div>
+    <div class="opt"><input type="radio" name="rollout" id="roll-direct" value="direct"><label for="roll-direct">Ship directly<span class="desc">Less overhead; no gradual ramp or instant rollback</span></label></div>
+    <div class="comment"><label for="roll-note">Comment (optional)</label><input type="text" id="roll-note" data-note="Rollout"></div>
+  </fieldset>
+
+  <h2>Operator notes</h2>
+  <fieldset>
+    <legend>Anything else for the implementing agent</legend>
+    <textarea id="operator-notes" placeholder="Free text — passed verbatim into the prompt."></textarea>
+  </fieldset>
+
+</div>
+
+<div class="panel" role="region" aria-label="Execution prompt">
+  <div class="panel-inner">
+    <div class="panel-head">
+      <h2>Execution prompt</h2>
+      <button id="toggle" aria-expanded="false" aria-controls="previewRegion">Expand</button>
+      <button id="download">Download as Markdown</button>
+      <button id="copy" class="primary">Copy execution prompt</button>
+    </div>
+    <div id="previewRegion" hidden>
+      <pre class="prompt" id="promptPreview"></pre>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
+
+<script>
+(function () {
+  // Illustrative absolute path; a generated brief substitutes its own file:// URL.
+  const BRIEF_URL = "file:///path/to/outputs/briefs/brief_read-api-cache_2026-07-24.html";
+  const TITLE = "Add a caching layer to the read API";
+
+  const DEFAULTS = { store: "redis", invalidation: "ttl", rollout: "flag" };
+  const PRESETS = {
+    lean:          { store: "memory", invalidation: "ttl",       rollout: "flag" },
+    standard:      { store: "redis",  invalidation: "ttl",       rollout: "flag" },
+    comprehensive: { store: "redis",  invalidation: "ttl-event", rollout: "flag" },
+  };
+  const LABELS = {
+    store:        { memory: "Cache store: in-process memory", redis: "Cache store: Redis", none: "Cache store: deferred (no store yet)" },
+    invalidation: { ttl: "Invalidation: TTL only", "ttl-event": "Invalidation: TTL + event-based", manual: "Invalidation: manual only" },
+    rollout:      { flag: "Rollout: behind a feature flag", direct: "Rollout: ship directly" },
+  };
+
+  const state = Object.assign({}, PRESETS.standard);
+  const notes = {}; // keyed by data-note label
+  let operatorNotes = "";
+  let expanded = false;
+
+  function applyPreset(name) {
+    Object.assign(state, PRESETS[name]);
+    for (const key of Object.keys(state)) {
+      const el = document.querySelector('input[name="' + key + '"][value="' + state[key] + '"]');
+      if (el) el.checked = true;
+    }
+    updateAll();
+  }
+
+  function buildPrompt() {
+    let out = "Continue from brief: " + TITLE + " (" + BRIEF_URL + ").\n\nDecisions:\n";
+    const bullets = [];
+    for (const key of Object.keys(DEFAULTS)) {
+      if (state[key] !== DEFAULTS[key]) bullets.push("- " + LABELS[key][state[key]]);
+    }
+    out += bullets.length ? bullets.join("\n") : "- (all defaults; see brief for the recommended path)";
+
+    const comments = Object.entries(notes).filter(function (e) { return e[1].trim(); });
+    if (comments.length) {
+      out += "\n\nComments:\n" + comments.map(function (e) { return "- " + e[0] + ": " + e[1].trim(); }).join("\n");
+    }
+
+    if (operatorNotes.trim()) {
+      const quoted = operatorNotes.trim().split("\n").map(function (l) { return "> " + l; }).join("\n");
+      out += "\n\nNotes from operator:\n" + quoted;
+    }
+
+    out += "\n\nImplement the caching layer per the decisions above. Write tests first, and confirm before introducing any new production dependency.";
+    return out;
+  }
+
+  function renderPromptInto(el, text) {
+    const re = /file:\/\/\/[^\s)<>"']+/g;
+    const parts = [];
+    let lastIndex = 0;
+    for (const m of text.matchAll(re)) {
+      if (m.index > lastIndex) parts.push(document.createTextNode(text.slice(lastIndex, m.index)));
+      const a = document.createElement("a");
+      a.href = m[0]; a.target = "_blank"; a.rel = "noopener"; a.textContent = m[0];
+      parts.push(a);
+      lastIndex = m.index + m[0].length;
+    }
+    if (lastIndex < text.length) parts.push(document.createTextNode(text.slice(lastIndex)));
+    el.replaceChildren.apply(el, parts);
+  }
+
+  const preview = document.getElementById("promptPreview");
+  const region = document.getElementById("previewRegion");
+  const toggle = document.getElementById("toggle");
+
+  function updateAll() {
+    renderPromptInto(preview, buildPrompt());
+    if (expanded) region.style.height = region.scrollHeight + "px";
+  }
+
+  function setExpanded(open) {
+    expanded = open;
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.textContent = open ? "Collapse" : "Expand";
+    if (open) {
+      region.hidden = false;
+      region.style.height = region.scrollHeight + "px";
+    } else {
+      region.style.height = "0px";
+      region.hidden = true;
+    }
+  }
+
+  document.querySelectorAll('input[name="preset"]').forEach(function (r) {
+    r.addEventListener("change", function () { if (r.checked) applyPreset(r.value); });
+  });
+  ["store", "invalidation", "rollout"].forEach(function (key) {
+    document.querySelectorAll('input[name="' + key + '"]').forEach(function (r) {
+      r.addEventListener("change", function () {
+        if (r.checked) { state[key] = r.value; updateAll(); }
+      });
+    });
+  });
+  document.querySelectorAll("input[data-note]").forEach(function (inp) {
+    inp.addEventListener("input", function () { notes[inp.dataset.note] = inp.value; updateAll(); });
+  });
+  document.getElementById("operator-notes").addEventListener("input", function (e) {
+    operatorNotes = e.target.value; updateAll();
+  });
+
+  toggle.addEventListener("click", function () { setExpanded(!expanded); });
+
+  const toast = document.getElementById("toast");
+  function flash(msg) {
+    toast.textContent = msg; toast.classList.add("show");
+    setTimeout(function () { toast.classList.remove("show"); }, 1400);
+  }
+
+  document.getElementById("copy").addEventListener("click", function () {
+    navigator.clipboard.writeText(buildPrompt()).then(function () { flash("Copied"); },
+      function () { flash("Copy failed"); });
+  });
+  document.getElementById("download").addEventListener("click", function () {
+    const blob = new Blob([buildPrompt()], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "brief_read-api-cache_2026-07-24.md";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    flash("Downloaded");
+  });
+
+  // Reflect defaults on the radios, then first paint (panel starts collapsed).
+  applyPreset("standard");
+  setExpanded(false);
+})();
+</script>
+</body>
+</html>

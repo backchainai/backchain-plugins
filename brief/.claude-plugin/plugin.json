@@ -1,0 +1,22 @@
+{
+  "name": "brief",
+  "description": "Interactive HTML briefs for intermediate operator-agent discussion. Renders plans, specs, option comparisons, annotated reviews, and recommendations as a single self-contained .html file with inline decision controls and a copy-execution-prompt button, instead of a flat markdown wall.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Chris Krough",
+    "email": "dev@krough.org",
+    "url": "https://dev.krough.org"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "html-brief",
+    "interactive",
+    "decision-support",
+    "planning",
+    "spec",
+    "agentskills"
+  ],
+  "category": "productivity",
+  "repository": "https://github.com/backchainai/backchain-plugins",
+  "homepage": "https://github.com/backchainai/backchain-plugins/tree/main/brief"
+}
