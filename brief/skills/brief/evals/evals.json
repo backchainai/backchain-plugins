@@ -1,0 +1,46 @@
+{
+  "skill_name": "brief",
+  "evals": [
+    {
+      "id": 1,
+      "slug": "eval-plan-request",
+      "fixture": "empty-project",
+      "prompt": "Give me a plan for adding rate limiting to our public API. I want to review it before you build anything.",
+      "expected_output": "A single self-contained .html brief written under outputs/briefs/, not a markdown plan in chat. It carries the rendered-frontmatter header, a full-width context paragraph, a preset bar with a recommended preset pre-selected, decision cards with per-card comment inputs, an operator-notes textarea, and a sticky prompt panel that ships collapsed with a copy button.",
+      "assertions": [
+        {"text": "A single .html file is written under outputs/briefs/ (default location); the agent does not answer with a markdown plan pasted into chat instead", "type": "fs"},
+        {"text": "The HTML is self-contained: no <link>, <script src>, @import, or @font-face pulling from an external CDN or remote host", "type": "structural"},
+        {"text": "The document contains a rendered-frontmatter header with the four keys prepared_by, model, timestamp, and description in that order", "type": "structural"},
+        {"text": "The document contains a preset bar (a fieldset of named preset radios) with one preset pre-selected on load", "type": "structural"},
+        {"text": "The document contains at least one decision card whose options each sit above a single-line free-text comment input", "type": "structural"},
+        {"text": "The document contains a sticky bottom panel with a 'Copy execution prompt' control; the prompt preview starts collapsed and has an expand/collapse toggle carrying aria-expanded", "type": "structural"},
+        {"text": "The generated execution prompt renders the brief's own path as a file:/// URL, not a bare absolute path", "type": "analytical"},
+        {"text": "The agent reports the file:// URL back to the operator after writing", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "eval-compare-options",
+      "fixture": "empty-project",
+      "prompt": "Compare Postgres vs SQLite vs a hosted key-value store for this service and help me decide.",
+      "expected_output": "An interactive HTML brief that lays the options out as side-by-side decision cards with radio controls and a recommended default pre-selected, rather than a flat markdown comparison table in chat.",
+      "assertions": [
+        {"text": "A single self-contained .html brief is written under outputs/briefs/; the comparison is not delivered as a markdown table in chat", "type": "fs"},
+        {"text": "The store options are presented as mutually-exclusive radio controls within the brief, with one option pre-selected as the recommended path", "type": "structural"},
+        {"text": "The brief emits an execution prompt in which only non-default selections appear as bullets (defaults stay silent)", "type": "analytical"},
+        {"text": "The prompt preview is built by DOM construction (anchors created for file:/// URLs), not by assigning operator-supplied text into innerHTML", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "eval-skip-trivial",
+      "fixture": "empty-project",
+      "prompt": "Does this repo use tabs or spaces for indentation?",
+      "expected_output": "A direct one-line answer. No HTML brief — this is a trivial factual lookup, not an intermediate discussion artifact.",
+      "assertions": [
+        {"text": "No .html file is written anywhere in the workspace", "type": "fs"},
+        {"text": "The response is a short direct answer, not an interactive artifact or a multi-section plan", "type": "analytical"}
+      ]
+    }
+  ]
+}

@@ -24,6 +24,11 @@
       "name": "diogenes",
       "source": "./diogenes",
       "description": "Senior-reviewer audit for AI-slop and LLM-generation tells in written content"
+    },
+    {
+      "name": "brief",
+      "source": "./brief",
+      "description": "Interactive HTML briefs for plans, specs, and decisions — inline controls plus a copy-to-prompt button, in place of a markdown wall"
     }
   ]
 }
