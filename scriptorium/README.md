@@ -6,14 +6,14 @@
 
 ## What this is
 
-[Diataxis](https://diataxis.fr/) sorts documentation into four modes along two axes: whether the content serves action or cognition, and whether it serves the user's acquisition of a skill or their application of a skill they already have.
+[Diataxis](https://diataxis.fr/) sorts documentation into four modes by crossing what the reader needs against what the document does:
 
-| If the content... | ...and serves the user's... | ...then it belongs to... |
+| Reader needs to... | ...and the document... | ...is a |
 |---|---|---|
-| informs action | acquisition of skill | tutorial |
-| informs action | application of skill | how-to guide |
-| informs cognition | application of skill | reference |
-| informs cognition | acquisition of skill | explanation |
+| learn a skill | walks them through doing it | tutorial |
+| apply a skill they have | walks them through doing it | how-to guide |
+| apply a skill they have | builds their understanding | reference |
+| learn a skill | builds their understanding | explanation |
 
 A tutorial teaches a newcomer by walking one fixed path. A how-to guide gets a competent user through a specific task, not a lesson. A reference states facts about the system so a working user can look them up. An explanation clarifies why the system works the way it does, for a reader who is not mid-task. Mixing modes inside one document leaves the reader unable to tell which promise the document is making.
 
@@ -37,6 +37,16 @@ This plugin is a scaffold. No skill ships yet: the routing logic, the authoring 
 ## License and contributing
 
 `scriptorium` is released under [Apache-2.0](../LICENSE), the same license as the rest of this repository. Copyright (C) 2026 Backchain LLC. Contributions follow the repository [CONTRIBUTING.md](../CONTRIBUTING.md): Apache-2.0, contributors retain copyright, no CLA or DCO sign-off.
+
+## Attribution
+
+scriptorium references and paraphrases two third-party frameworks rather than redistributing their text. scriptorium's own text, including the routing table above, is original wording released under Apache-2.0. See `docs/decisions/third-party-content-licensing.md` for the full license verification and the per-element decision on what may be quoted versus what must be paraphrased.
+
+**Diátaxis** ([diataxis.fr](https://diataxis.fr/))
+Licensor: Daniele Procida. License: Creative Commons Attribution-ShareAlike 4.0 International (CC-BY-SA-4.0), `https://creativecommons.org/licenses/by-sa/4.0/`. Source (license): `https://github.com/evildmp/diataxis-documentation-framework/blob/main/LICENSE.rst`. Source (licensor): `https://github.com/evildmp/diataxis-documentation-framework/blob/main/CITATION.cff`.
+
+**CommonMark 0.31.2 specification** ([spec.commonmark.org/0.31.2](https://spec.commonmark.org/0.31.2/))
+Licensor: John MacFarlane. License: Creative Commons Attribution-ShareAlike 4.0 International (CC-BY-SA-4.0), `https://creativecommons.org/licenses/by-sa/4.0/`. Source: `https://github.com/commonmark/commonmark-spec/blob/0.31.2/LICENSE`.
 
 ## Credits
 
