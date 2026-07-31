@@ -1,0 +1,21 @@
+{
+  "name": "scriptorium",
+  "description": "Diataxis-grounded documentation authoring and placement. Routes a document to one of the four Diataxis modes (tutorial, how-to guide, reference, explanation), writes it under that mode's constraints, and checks its markdown form against CommonMark 0.31.2.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Chris Krough",
+    "email": "dev@krough.org",
+    "url": "https://dev.krough.org"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "diataxis",
+    "documentation",
+    "commonmark",
+    "technical-writing",
+    "agentskills"
+  ],
+  "category": "productivity",
+  "repository": "https://github.com/backchainai/backchain-plugins",
+  "homepage": "https://github.com/backchainai/backchain-plugins/tree/main/scriptorium"
+}

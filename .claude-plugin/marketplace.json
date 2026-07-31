@@ -29,6 +29,11 @@
       "name": "brief",
       "source": "./brief",
       "description": "Interactive HTML briefs for plans, specs, and decisions — inline controls plus a copy-to-prompt button, in place of a markdown wall"
+    },
+    {
+      "name": "scriptorium",
+      "source": "./scriptorium",
+      "description": "Diataxis-grounded documentation authoring and placement: routes a document to tutorial, how-to guide, reference, or explanation, then checks its markdown against CommonMark 0.31.2"
     }
   ]
 }

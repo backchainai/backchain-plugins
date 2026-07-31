@@ -54,6 +54,12 @@ Plans, specs, option comparisons, and annotated reviews are spatial information 
 |---------|---------|
 | **brief** | Component contract, two-track prompt rendering, and anti-patterns for the interactive brief, plus a self-contained reference example |
 
+### [Scriptorium](./scriptorium)
+
+**Diataxis-grounded documentation authoring**
+
+Agents generate and relocate documentation without a theory of what kind of document they are writing, and the result mixes modes inside a single file: a how-to carrying half a page of rationale, a tutorial offering options, a reference page carrying opinion. `scriptorium` routes a document to one of the four Diataxis modes (tutorial, how-to guide, reference, explanation), so the agent writes it under that mode's constraints and checks it against CommonMark 0.31.2. No skill ships yet; the plugin is a scaffold tracked under epic [#15](https://github.com/backchainai/backchain-plugins/issues/15).
+
 ## Marketplace Installation
 
 ### From GitHub (recommended)
@@ -64,6 +70,7 @@ Plans, specs, option comparisons, and annotated reviews are spatial information 
 /plugin install engram@backchain-plugins
 /plugin install diogenes@backchain-plugins
 /plugin install brief@backchain-plugins
+/plugin install scriptorium@backchain-plugins
 ```
 
 ### Local Development
@@ -75,6 +82,7 @@ git clone https://github.com/backchainai/backchain-plugins.git
 /plugin install engram@backchain-plugins
 /plugin install diogenes@backchain-plugins
 /plugin install brief@backchain-plugins
+/plugin install scriptorium@backchain-plugins
 ```
 
 ## License
