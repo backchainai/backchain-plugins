@@ -9,3 +9,32 @@ you may not use this software except in compliance with the License.
 You may obtain a copy of the License at:
 
     http://www.apache.org/licenses/LICENSE-2.0
+
+Third-party content
+--------------------
+
+The scriptorium plugin references two third-party frameworks. Neither is
+redistributed in bulk; any quotation is short, marked, and attributed.
+scriptorium references and paraphrases each framework's ideas in original
+wording. See scriptorium/docs/decisions/third-party-content-licensing.md for
+the full finding and the per-element decision record.
+
+Diátaxis
+  Licensor: Daniele Procida
+  License: Creative Commons Attribution-ShareAlike 4.0 International (CC-BY-SA-4.0)
+  License URL: https://creativecommons.org/licenses/by-sa/4.0/
+  Work: https://diataxis.fr/
+  Source (license): https://github.com/evildmp/diataxis-documentation-framework/blob/main/LICENSE.rst
+  Source (licensor): https://github.com/evildmp/diataxis-documentation-framework/blob/main/CITATION.cff
+  Use in this repository: referenced and paraphrased for documentation-mode
+  routing logic; not redistributed.
+
+CommonMark 0.31.2 specification
+  Licensor: John MacFarlane
+  License: Creative Commons Attribution-ShareAlike 4.0 International (CC-BY-SA-4.0)
+  License URL: https://creativecommons.org/licenses/by-sa/4.0/
+  Work: https://spec.commonmark.org/0.31.2/
+  Source: https://github.com/commonmark/commonmark-spec/blob/0.31.2/LICENSE
+  Source (unpinned, master): https://github.com/commonmark/commonmark-spec/blob/master/LICENSE
+  Use in this repository: referenced and paraphrased for markdown-form
+  checking, cited by section number; not redistributed.
