@@ -98,4 +98,21 @@ These recur in agent-generated markdown, and each maps to a rule above:
 
 ## Scope note
 
-Severity assignment for violations of these rules, and the `check_markdown.py` linter that checks for them, land in issue #19. This file is the authoring reference: it states the rules and the pitfalls they prevent, not how a linter scores or reports them.
+The `check_markdown.py` linter at `scriptorium/skills/docs/scripts/check_markdown.py` applies the rules above mechanically. It is a line-based scanner, not a CommonMark parser: it tracks fenced code blocks first, then runs every check only on lines outside a fence.
+
+**Running it:**
+
+```bash
+python3 scriptorium/skills/docs/scripts/check_markdown.py path/to/file.md
+python3 scriptorium/skills/docs/scripts/check_markdown.py -
+python3 scriptorium/skills/docs/scripts/check_markdown.py --strict-commonmark path/to/file.md
+python3 scriptorium/skills/docs/scripts/check_markdown.py --llms
+```
+
+Positional arguments are one or more markdown file paths. `-` reads a single document from stdin instead, for checking a draft before it lands on disk. `--strict-commonmark` promotes the pipe-table advisory (see Tables, above) to an error. `--llms` prints a machine-readable self-description of the linter's checks, flags, and exit codes to stdout and exits 0.
+
+**Severity and exit codes:** severity keys the exit code on errors only, so an advisory finding never fails a run. Exit 0 means zero error-severity findings (advisories may still be present); exit 1 means at least one error-severity finding; exit 2 means the run could not complete (an unreadable file, or no input given).
+
+**Why pipe tables are advisory by default:** CommonMark 0.31.2 defines no table syntax (see Tables, above), so a strict reading would flag every pipe table in this repository, including the one earlier in this file. Advisory by default keeps the linter usable against this repository's own files; `--strict-commonmark` promotes the check to an error for a CommonMark-only pass.
+
+**Without python3:** stock Windows ships no `python3` interpreter. When it is unavailable, apply the rules in this reference by hand: read the document and check headings, fences, list markers, and reference links against the table above rather than skipping the authoring pass.
