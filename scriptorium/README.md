@@ -32,7 +32,7 @@ Diataxis governs product documentation written for users. It does not govern:
 
 ## Status
 
-This plugin is a scaffold. No skill ships yet: the routing logic, the authoring workflow, and the CommonMark check described above are tracked under epic [#15](https://github.com/backchainai/backchain-plugins/issues/15) and its child issues, not implemented in this tree. Installing `scriptorium` today registers the plugin manifest only.
+The `docs` skill now ships: it routes a document to its Diataxis mode, writes it under that mode's constraints, and carries a CommonMark authoring reference for checking markdown form. The `check_markdown.py` linter ([#19](https://github.com/backchainai/backchain-plugins/issues/19)) and the eval suite ([#20](https://github.com/backchainai/backchain-plugins/issues/20)) are still tracked under epic [#15](https://github.com/backchainai/backchain-plugins/issues/15).
 
 ## License and contributing
 
