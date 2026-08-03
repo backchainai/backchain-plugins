@@ -1,0 +1,24 @@
+workspace: scriptorium-workspace
+model: claude-sonnet-4-6
+grading_model: claude-haiku-4-5
+
+# Each skill declares:
+#   path: skill directory (relative to repo root)
+#   baseline_prompt: what a user would reasonably type without the skill
+#   fixture_root: directory holding per-scenario fixture trees (relative to repo root).
+#     Each fixture directory is the workspace the eval runner copies in before the
+#     run and inspects (via post-run filesystem snapshot) after it.
+#   tools: comma-separated tool list granted during the run. The docs skill reads a
+#     document, may draft or edit one, and may run the bundled markdown linter, so
+#     it needs Read, Write, and Bash.
+skills:
+  docs:
+    path: scriptorium/skills/docs
+    baseline_prompt: "Where does this document belong, and is its markdown clean? I don't have a documentation-routing tool, just tell me directly."
+    fixture_root: scriptorium/evals/fixtures
+    tools: "Read,Write,Bash"
+
+# The runner itself (run_evals.py, pyproject.toml, uv.lock) is deliberate follow-up
+# work, out of scope for this change. When it lands, scriptorium-workspace/ (the
+# per-run scratch copy of a fixture tree) will need a .gitignore entry so the
+# runner's working copies never get committed.
