@@ -1,0 +1,76 @@
+{
+  "skill_name": "docs",
+  "evals": [
+    {
+      "id": 1,
+      "slug": "eval-contamination-split",
+      "fixture": "contaminated-how-to",
+      "prompt": "Have a look at restore-from-snapshot.md and tell me whether it is in the right shape. If something is off, tell me what you would do about it.",
+      "expected_output": "The output names restore-from-snapshot.md as a how-to guide, identifies the two opening paragraphs (why point-in-time restore matters and what a snapshot does and does not capture; the trade-off between restore speed and the data-loss window) as explanation-mode contamination, and proposes a split: a new explanation document carries the extracted rationale, and the how-to's opening line becomes a drafted link back to it. The six numbered steps are left in place as already in mode. Nothing is rewritten in place and no file changes happen before confirmation.",
+      "assertions": [
+        {"text": "Output names the document's own mode as a how-to guide.", "type": "structural"},
+        {"text": "Output identifies the opening rationale paragraphs as explanation-mode contamination, quoting or summarizing the specific passage (why point-in-time restore matters and what a snapshot does and does not capture; the restore-speed-versus-data-loss-window trade-off) rather than flagging it vaguely as 'some rationale in here'.", "type": "structural"},
+        {"text": "The proposal is a split: it names a destination document and its mode (explanation) for the extracted passage, and drafts the link text that replaces the passage in the how-to's opening line.", "type": "structural"},
+        {"text": "The proposal is not a rewrite: the output does not present a reworded or restructured version of restore-from-snapshot.md that keeps the rationale paragraphs in place.", "type": "structural"},
+        {"text": "The workspace contains exactly one file, restore-from-snapshot.md, and it still carries both opening rationale paragraphs and all six numbered steps.", "type": "fs"},
+        {"text": "The six numbered steps are identified as already correctly in how-to mode and are not proposed for extraction into the explanation document.", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 2,
+      "slug": "eval-linter-malformed",
+      "fixture": "malformed-markdown",
+      "prompt": "Check install-guide.md for markdown problems before I publish it.",
+      "expected_output": "The output reports exactly three problems in install-guide.md: line 5 begins with '#Prerequisites', a heading marker not followed by a space, so it renders as literal text rather than a heading; line 9 reads '####### Requirements', seven '#' characters, one more than the six an ATX heading allows, so it is not a heading; and line 13 ends with two or more trailing spaces, creating an invisible hard line break. The output reports no problem on any line inside the fenced bash code block (the shebang, the #include line, and the tab-indented echo line are all skipped as fence content). The model may reach these findings either by running the bundled linter (scriptorium/skills/docs/scripts/check_markdown.py), which reports them as CommonMark sections 4.2, 4.2, and 6.7 respectively, or by applying the same rules directly to the file text if the script is not reachable from the isolated workspace; both routes are expected to produce the same three findings. No advisory findings are present. install-guide.md is not modified.",
+      "assertions": [
+        {"text": "Output reports exactly three problems, each stated in plain terms decidable from the file text with no CommonMark section number required: line 5's heading marker ('#Prerequisites') not followed by a space; line 9's heading using seven '#' characters, one more than an ATX heading's six-character limit; and line 13 ending in two or more trailing spaces, which creates an invisible hard line break.", "type": "structural"},
+        {"text": "Output reports no finding on any line inside the fenced bash code block, specifically not the '#!/usr/bin/env bash' shebang line, not the '#include <stdio.h>' line, and not the tab-indented echo line.", "type": "structural"},
+        {"text": "Output reports no finding anywhere else in the document beyond those three problems.", "type": "structural"},
+        {"text": "The workspace contains exactly one file, install-guide.md, and its three seeded problems are all still present in it (the check was a read, not a fix).", "type": "fs"},
+        {"text": "Each reported finding names the specific construct at issue (the unspaced heading marker, the seven-hash heading, or the trailing double-space line break) and its line number, not just a vague 'this looks wrong'; naming a CommonMark section number is optional, not required.", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "eval-compass-routing",
+      "fixture": "unclassified-document",
+      "prompt": "Where does first-deploy.md belong? I am not sure what kind of doc it is.",
+      "expected_output": "The output runs the compass against first-deploy.md: the reader is applying a skill already held (kubectl, git, and registry usage are assumed, not taught), and the document walks through a fixed sequence of deploy actions rather than building understanding. Both answers point to the same cell, and the output names how-to guide as the single mode, without hedging toward tutorial or reference. The output treats this as a single-document assessment: it does not propose moving, renaming, or reclassifying README.md or any other file in the workspace.",
+      "assertions": [
+        {"text": "Output names exactly one of tutorial, how-to guide, reference, or explanation as the document's mode, and does not name more than one mode or hedge across two cells of the compass table (e.g. 'this could be a how-to or a tutorial').", "type": "structural"},
+        {"text": "Output states an explicit answer to both compass questions: whether the reader needs to learn a skill or apply one already held, and whether the document walks the reader through doing something or builds their understanding.", "type": "structural"},
+        {"text": "Output does not propose moving, renaming, or reclassifying README.md or any other file in the workspace, and does not sweep the workspace for additional documents to assess; it works only against first-deploy.md. Reading README.md as context for first-deploy.md's reader framing is permitted; what is disallowed is assessing, reclassifying, moving, or renaming it.", "type": "structural"},
+        {"text": "The mode named is how-to guide: the fixture's opening line assumes competence with kubectl and the registry, and the body narrates a fixed sequence of numbered actions, which is the cell the fixture's framing actually supports.", "type": "analytical"},
+        {"text": "The workspace contains exactly two files, README.md and first-deploy.md, both still at the workspace root.", "type": "fs"}
+      ]
+    },
+    {
+      "id": 4,
+      "slug": "eval-scaffold-refusal",
+      "fixture": "unclassified-document",
+      "prompt": "Set up a docs folder for my project using Diataxis.",
+      "expected_output": "No mode-named directory exists in the workspace without at least one complete document inside it after the run (a directory created in the same action that writes a document into it is compliant, and is not an fs violation). Per the never-scaffold rule, a request to set up a docs folder ahead of content becomes a request to defer creation until a document is ready, so deferral is the prescribed response to this request: the output states the never-scaffold precondition (a directory is created only in the same action that writes a document into it) and identifies what would need to exist before the directory is created, rather than either scaffolding empty mode folders or refusing outright. A response that instead creates a mode-named directory together with a complete document in that same action also satisfies the precondition and is compliant.",
+      "assertions": [
+        {"text": "No empty directory exists anywhere in the workspace after the run: every directory has at least one file somewhere in its subtree, at any depth.", "type": "fs"},
+        {"text": "No directory named tutorial, tutorials, how-to, how-to-guides, howto, reference, references, or explanation exists in the workspace unless it contains at least one complete document file (not a placeholder, .gitkeep, an empty file, or a stub index whose only content describes the directory).", "type": "fs"},
+        {"text": "Every file in the workspace other than README.md and first-deploy.md is a complete document, not a placeholder, .gitkeep, or empty file.", "type": "fs"},
+        {"text": "Output states the never-scaffold precondition that a directory is created only in the same action that writes a document into it, either as its reason for deferring the directory's creation or as its reason for creating the directory together with a document in one action.", "type": "structural"},
+        {"text": "The response takes one of the two compliant branches and says which: it either defers, identifying what would need to exist before the directory is created, or it creates the directory in the same action that writes a complete document into it. It does not create a directory ahead of content and it does not refuse flatly.", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 5,
+      "slug": "eval-out-of-scope-adr",
+      "fixture": "adr-out-of-scope",
+      "prompt": "Reorganize docs/decisions/0007-postgres-event-store.md into Diataxis modes: split it into a how-to and an explanation.",
+      "expected_output": "The output declines up front, naming the ADR row of the out-of-scope table and its reason: an ADR is a dated historical artifact, not one of the four Diataxis modes. It does not open the compass, does not classify the document into any mode, and does not propose extracting its numbered onboarding steps or its rationale into separate documents. The ADR file is left unchanged.",
+      "assertions": [
+        {"text": "Output declines the reorganization and states the reason: an ADR is a dated historical artifact, not one of the four Diataxis modes.", "type": "structural"},
+        {"text": "Output does not route the ADR to a mode: it does not classify the document as a tutorial, how-to guide, reference, or explanation.", "type": "structural"},
+        {"text": "Output does not propose a split, a destination document, or link text for any part of the ADR.", "type": "structural"},
+        {"text": "The workspace contains exactly the ADR at docs/decisions/0007-postgres-event-store.md and no other document, and the ADR still carries its Status, Context, Decision, and Consequences sections.", "type": "fs"},
+        {"text": "The decline is stated up front, before any per-mode analysis of the ADR's content, not appended after working through the compass.", "type": "analytical"}
+      ]
+    }
+  ]
+}
