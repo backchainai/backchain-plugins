@@ -1,13 +1,13 @@
 ---
-title: Third-Party Content Licensing (Diátaxis, CommonMark)
+title: Third-Party Content Licensing (Diátaxis, CommonMark, NARA)
 prepared_by: Claude (Sonnet 5)
-updated: 2026-07-31T15:27:01-04:00
-purpose: Record verified license findings for Diátaxis and the CommonMark spec, and the per-element decision to paraphrase rather than reproduce.
+updated: 2026-08-04T11:59:01-04:00
+purpose: Record verified license findings for Diátaxis, the CommonMark spec, and NARA Bulletin 2015-04, and the per-element decision to paraphrase rather than reproduce.
 tags: []
 aliases: []
 ---
 
-# Third-Party Content Licensing (Diátaxis, CommonMark)
+# Third-Party Content Licensing (Diátaxis, CommonMark, NARA)
 
 ## Decision
 
@@ -64,6 +64,20 @@ text, so CC-BY-SA-4.0 is the license that governs here.
 
 Verified: 2026-07-31.
 
+### NARA Bulletin 2015-04, Appendix B (https://www.archives.gov/records-mgmt/bulletins/2015/2015-04.html)
+
+A work of the United States federal government: the National Archives and
+Records Administration (NARA) is a US federal agency, and its bulletins are
+not subject to copyright protection in the United States under 17 U.S.C.
+§105. No license terms apply, and no compatibility question with
+Apache-2.0 arises here, unlike the CC-BY-SA-4.0 sources above.
+
+Authoritative source: [archives.gov/records-mgmt/bulletins/2015/2015-04.html](https://www.archives.gov/records-mgmt/bulletins/2015/2015-04.html),
+resolving to Appendix B (file-naming conventions) at
+[archives.gov/records-mgmt/bulletins/2015/2015-04-appendix-b.html](https://www.archives.gov/records-mgmt/bulletins/2015/2015-04-appendix-b.html).
+
+Verified: 2026-08-04.
+
 ### GitHub API discrepancy
 
 GitHub's repository API reports `license: NOASSERTION` for both repositories.
@@ -110,6 +124,7 @@ say for this specific pairing.**
 | Short Diátaxis quotations that justify a design constraint | Permitted sparingly, marked as a quotation, with a source link | A short, attributed quotation used to support a stated constraint is a narrower use than reproducing structural content, and stays clearly sourced. |
 | CommonMark spec rule statements (for example, an ATX heading's opening `#` run must be followed by a space or tab, or by end of line (4.2)) | Paraphrase; cite the section number (4.2 for ATX headings, 4.5 for fenced code blocks) instead of reproducing spec prose | The rule is a technical fact; the spec's prose describing it is BY-SA expression. Citing the section number over reproducing the sentence keeps the reference verifiable without carrying the expression. |
 | CommonMark section numbers and names used as citations | Free to use | A citation identifies a source; it does not reproduce the source's expression. |
+| NARA Bulletin 2015-04 Appendix B file-naming rule (the `{type}_{subject}[_{qualifier}].md` pattern) | Paraphrase; cite the bulletin and appendix instead of reproducing agency prose | The rule is a technical fact, and Appendix B is a public-domain US federal work under 17 U.S.C. §105, so no license question applies; paraphrasing and citing by bulletin and appendix keeps the reference verifiable and consistent with the treatment given the CommonMark section rules above. |
 
 ## Consequences
 
@@ -117,9 +132,11 @@ say for this specific pairing.**
   original wording, with citations to [diataxis.fr](https://diataxis.fr/) and
   [spec.commonmark.org/0.31.2](https://spec.commonmark.org/0.31.2/) by section
   where relevant.
-- `NOTICE` at the repository root and `scriptorium/README.md` both carry
-  attribution for the two frameworks: licensor, license, license URL, and
-  authoritative source link.
+- A source whose license imposes an attribution condition gets an entry in
+  `NOTICE` at the repository root and in `scriptorium/README.md`: licensor,
+  license, license URL, and authoritative source link. A public-domain source
+  imposes no such condition and gets no entry, which is why NARA Bulletin
+  2015-04 is recorded here and carries no `NOTICE` entry.
 - Any future skill draft that reproduces upstream table structure, list
   wording, or spec prose verbatim should be routed back to this record before
   merging.

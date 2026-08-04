@@ -105,11 +105,27 @@ If the two questions still don't produce a confident answer after one read-throu
 1. Answer the compass's two questions for the document at hand. The answer names exactly one mode.
 2. Load exactly one mode reference from `${CLAUDE_SKILL_DIR}/references/` (see References below).
 3. Draft under that mode's key principles.
-4. Check markdown form before returning the draft.
+4. Name the file and write its frontmatter, loading `${CLAUDE_SKILL_DIR}/references/frontmatter.md` (see Document identity below).
+5. Run the self-check before emitting (see Self-check before emitting below).
+6. Emit the document, or stop and report per Escalation.
 
 Loading more than one mode file before drafting mixes their constraints together, which is the failure this skill exists to prevent. If the compass answer feels uncertain, resolve it by re-reading the compass table, not by loading a second mode file to compare.
 
 The loaded mode file states that mode's `## Key principles` and its `## Shape on the page`; draft under both.
+
+### Document identity
+
+Sourced to NARA Bulletin 2015-04, Appendix B. Every emitted file's name follows:
+
+```
+{type}_{subject}[_{qualifier}].md
+```
+
+Lowercase only. Hyphens separate words within a semantic field; underscores separate semantic fields. Nothing outside `[a-z0-9._-]`.
+
+- **Living pages carry no date in the file name.** Dates live in `created` and `updated` instead: a renamed file breaks every inbound link and every cached retrieval chunk.
+- **Immutable records are the sole exception** and take a trailing ISO 8601 date field: `release-notes_2026-07-24.md`.
+- **The file name stem equals the frontmatter `id`.** Renaming an emitted file follows the `aliases` rule in `references/frontmatter.md`.
 
 ### Common misroutes
 
@@ -122,14 +138,35 @@ The loaded mode file states that mode's `## Key principles` and its `## Shape on
 | A worked example after a table of fields | reference drifting toward how-to | split into reference plus a linked how-to |
 | A history of past API versions | explanation drifting into changelog territory | explanation if forward-looking; changelog if purely chronological |
 
-### Checklist before returning a draft
-
-- The draft answers only one cell of the compass table.
-- The draft shows none of the loaded mode file's "signs a draft has drifted out of mode."
-- Before creating any directory, apply the never-scaffold precondition below: create a directory only in the same action that writes a document into it.
-- The draft has been checked against `${CLAUDE_SKILL_DIR}/references/commonmark.md`.
+### Mid-draft mode drift
 
 If drafting surfaces material that belongs to a different mode (a how-to draft accumulating paragraphs of rationale between steps, a reference draft accumulating a worked example at the bottom), stop adding it to the current document mid-draft. Note it as a candidate for a second document in the mode it actually belongs to, per the compass, rather than absorbing it into the one already in progress. The moment to catch this is while drafting, not after the document ships and needs the place path applied to it retroactively.
+
+## Self-check before emitting
+
+This gate runs when a file is about to be written. The place path emits no file and does not run it. Verify nine items in order; any failure stops emission and names the failing item.
+
+1. Compass applied, one type, mode boundaries respected.
+2. File name matches the pattern in `### Document identity` above and equals `id`. Any new directory is created only in the same action that writes this document into it.
+3. All required frontmatter present, types correct, dates ISO 8601.
+4. Provenance complete if machine-authored.
+5. No placeholder text remains: no `{curly braces}`, no `TBD`, no `TODO`, no lorem.
+6. Every `##` opens by naming its own subject.
+7. Body parses under CommonMark 0.31.2 plus GFM tables, nothing else.
+8. All code fences carry a language and are complete.
+9. All links inline and resolvable.
+
+Run `${CLAUDE_SKILL_DIR}/scripts/check_markdown.py` on the drafted body and treat exit 1 as a stop, naming the failing check and line. The linter covers part of item 7 (unclosed fence, heading hash runs, backtick in an info string, trailing double-space) and part of item 9 (unresolved reference links, advisory), and **none** of item 8: it never checks whether an info string is present. It also does not flag raw HTML. Those remainders are verified by reading. Advisory findings do not change the exit code, and the pipe-table advisory is expected here because GFM tables are permitted.
+
+## Escalation
+
+Stop and report rather than guess when:
+
+- the correct Diátaxis type is genuinely ambiguous (see the compass's ambiguity guidance above)
+- a required frontmatter value is unknown after applying the sibling-resolution rule in `references/frontmatter.md`
+- a reference file would need to be hand-authored because no machine-readable source exists
+- the source code contradicts an existing published page
+- the request would require violating a rule above
 
 ## Place path
 
@@ -211,5 +248,6 @@ This skill also does not check tone, brand voice, translation quality, or access
 - `${CLAUDE_SKILL_DIR}/references/reference.md`: load when the compass points to reference, drafting or reviewing a lookup page.
 - `${CLAUDE_SKILL_DIR}/references/explanation.md`: load when the compass points to explanation, drafting or reviewing a discussion page.
 - `${CLAUDE_SKILL_DIR}/references/commonmark.md`: load for any markdown-form question, in either path, independent of which mode file loaded.
+- `${CLAUDE_SKILL_DIR}/references/frontmatter.md`: load on the write path whenever a file is about to be emitted, for the field table and its rules (see Document identity above).
 
-Exactly one mode reference loads per routing decision; loading a second before the first draft or assessment is finished is itself a sign the compass questions weren't fully answered yet, and the fix is to return to the compass, not to keep reading. `commonmark.md` loads independently of mode, whenever the question at hand is about form rather than content.
+Exactly one mode reference loads per routing decision; loading a second before the first draft or assessment is finished is itself a sign the compass questions weren't fully answered yet, and the fix is to return to the compass, not to keep reading. `commonmark.md` and `frontmatter.md` are not mode references: each loads independently of mode, whenever its own question is at hand rather than the compass's.
