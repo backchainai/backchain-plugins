@@ -20,6 +20,17 @@ Before opening a PR:
 - [ ] No Backchain-internal references (client names, private directory layouts, internal tool paths) added to public skill files.
 - [ ] If a skill needs a tool integration (issue tracker, ADR location, custom scan path), the SKILL.md prompts the user to confirm the choice rather than hard-coding a specific tool.
 
+## Running the structure gate
+
+Run the structural gate before opening a PR:
+
+```
+bash scripts/gates/structure.sh       # structural contracts + python unit suites
+bash scripts/gates/test_structure.sh  # self-test of the gate itself
+```
+
+`scripts/gates/structure.sh` is what the repo's automated test gate runs: it checks SKILL.md frontmatter contracts and JSON validity, and runs every stdlib-unittest `test_*.py` suite under a `skills/*/scripts/` directory.
+
 ## Questions
 
 If a contribution does not fit the checklist or you want to discuss an approach first, open an issue. We would rather find a workable path than reject a useful contribution.
