@@ -109,7 +109,7 @@ python3 scriptorium/skills/docs/scripts/check_markdown.py --strict-commonmark pa
 python3 scriptorium/skills/docs/scripts/check_markdown.py --llms
 ```
 
-Positional arguments are one or more markdown file paths. `-` reads a single document from stdin instead, for checking a draft before it lands on disk. `--strict-commonmark` promotes the pipe-table advisory (see Tables, above) to an error. `--llms` prints a machine-readable self-description of the linter's checks, flags, and exit codes to stdout and exits 0.
+Positional arguments are one or more markdown file paths. `-` reads a single document from stdin instead, for checking a draft before it lands on disk. `--strict-commonmark` promotes the pipe-table advisory (see Tables, above) to an error. `--llms` prints a machine-readable self-description of the linter's checks, flags, and exit codes to stdout and exits 0. Each file or stdin read is capped at 5,000,000 characters, with an oversize input truncated to the cap and a diagnostic written to stderr.
 
 **Severity and exit codes:** severity keys the exit code on errors only, so an advisory finding never fails a run. Exit 0 means zero error-severity findings (advisories may still be present); exit 1 means at least one error-severity finding; exit 2 means the run could not complete (an unreadable file, or no input given).
 
