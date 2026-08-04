@@ -476,6 +476,51 @@ EOF
   return 1
 }
 
+case_red_marketplace_dash_name() {
+  # Stage E: marketplace entry name begins with '-' ("-r"). Pins the missing
+  # `--` end-of-options separator in the README-listing grep: without it,
+  # grep parses "$name" as the "-r" (recursive) option instead of a pattern,
+  # leaving "$readme" as the sole remaining argument -- which grep then
+  # treats as the PATTERN, recursively scanning the fixture tree instead of
+  # searching README.md's contents. leak.txt embeds the fixture's own
+  # resolved README.md path so that recursive scan finds a spurious match,
+  # concretely reproducing the silent-PASS the missing `--` allows: without
+  # the fix this case observes a PASS instead of the expected FAIL.
+  local name="red-on-marketplace (entry name '-r' not listed in README.md)"
+  local tmp out rc root_resolved
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  cat >"$tmp/plug/.claude-plugin/plugin.json" <<'EOF'
+{
+  "name": "-r",
+  "version": "0.0.0"
+}
+EOF
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": [
+    {
+      "name": "-r",
+      "source": "./plug"
+    }
+  ]
+}
+EOF
+  root_resolved=$(git -C "$tmp" rev-parse --show-toplevel)
+  printf '%s/README.md\n' "$root_resolved" >"$tmp/plug/leak.txt"
+  git -C "$tmp" add -A
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "not listed in README.md"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'not listed in README.md')"
+  printf '%s\n' "$out"
+  return 1
+}
+
 case_red_readme_missing() {
   # Stage E: no README.md exists at the repo root at all. Distinct from
   # case_red_readme_missing_entry, which deliberately keeps README.md
@@ -704,6 +749,7 @@ case_red_marketplace_missing_source || overall=1
 case_red_marketplace_missing_manifest || overall=1
 case_red_marketplace_wrong_dir || overall=1
 case_red_readme_missing_entry || overall=1
+case_red_marketplace_dash_name || overall=1
 case_red_readme_missing || overall=1
 case_red_marketplace_empty_plugins || overall=1
 case_red_marketplace_plugins_unresolvable || overall=1

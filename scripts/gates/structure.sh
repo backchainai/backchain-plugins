@@ -189,7 +189,7 @@ else
         readme="$root/README.md"
         if [ ! -f "$readme" ]; then
           efail "marketplace entry '$name' cannot be verified against README.md, file not found: $readme"
-        elif ! grep -q -F "$name" "$readme"; then
+        elif ! grep -qF -- "$name" "$readme"; then
           efail "marketplace entry '$name' not listed in README.md: $readme"
         fi
       done < <(jq -r '.plugins[] | ((.name // "")) + "\u001f" + ((.source // ""))' "$mp" 2>/dev/null)
