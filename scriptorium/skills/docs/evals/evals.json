@@ -71,6 +71,33 @@
         {"text": "The workspace contains exactly the ADR at docs/decisions/0007-postgres-event-store.md and no other document, and the ADR still carries its Status, Context, Decision, and Consequences sections.", "type": "fs"},
         {"text": "The decline is stated up front, before any per-mode analysis of the ADR's content, not appended after working through the compass.", "type": "analytical"}
       ]
+    },
+    {
+      "id": 6,
+      "slug": "eval-frontmatter-emission",
+      "fixture": "frontmatter-emission",
+      "prompt": "Write a how-to for rotating an API key with credentials.py, and save it under docs/.",
+      "expected_output": "The output writes a file under docs/ whose name matches the how-to naming pattern, with complete frontmatter: id equal to the file stem, all twelve required fields present, and dates in ISO 8601. It draws owner (widget-relay-platform) and applies_to (>=2.4) from docs/reference_credential-api.md rather than inventing them, and follows the mode-named template convention the sibling demonstrates: the sibling reference page carries template: reference, so this how-to takes template: how-to, rather than reusing the sibling's literal template value. Any tags drawn stay inside the sibling's controlled vocabulary plus the operations tag the frontmatter reference's worked example uses. A typical compliant filename is docs/how-to_rotate-api-key.md. Because the eval workspace is a fresh copy of the fixture with no git history, no commit resolves for the new file: the compliant branch here omits generator, model, and source_commit together and states in the response that the triple was omitted because no commit could be resolved. A response that instead writes all three fields is compliant only if it resolved a genuine commit for the new file in that workspace; inventing a source_commit, or writing generator/model without source_commit (or vice versa), is not compliant under either branch. The response also states outright which of the two provenance branches it took and why.",
+      "assertions": [
+        {"text": "A file was written whose path starts with docs/, whose filename matches ^how-to_[a-z0-9.-]+(_[a-z0-9.-]+)*\\.md$, and whose filename stem equals its own frontmatter id.", "type": "fs"},
+        {"text": "The file's frontmatter id equals its file stem, and all twelve required fields (id, title, description, type, template, status, audience, applies_to, created, updated, owner, tags) are present, with created and updated in ISO 8601 form. If status is current, reviewed_by and reviewed_on are also present; if type is reference, source is also present.", "type": "fs"},
+        {"text": "The file's frontmatter carries generator, model, and source_commit all three together, or none of the three; it never carries one or two of them alone.", "type": "fs"},
+        {"text": "owner and applies_to match the values already established in docs/reference_credential-api.md (widget-relay-platform and >=2.4) rather than differing invented values, and template follows the sibling's mode-named convention (a template set named for this document's own mode, i.e. template: how-to) rather than reusing the sibling's literal reference value.", "type": "structural"},
+        {"text": "No tag outside the set {security, credentials, api, operations} appears in the file's frontmatter tags list.", "type": "structural"},
+        {"text": "The response states which provenance branch it took (wrote the generator/model/source_commit triple because a commit resolved, or omitted the triple because no commit could be resolved) and why, rather than silently doing one without naming it.", "type": "analytical"}
+      ]
+    },
+    {
+      "id": 7,
+      "slug": "eval-escalation-unknown-value",
+      "fixture": "frontmatter-emission",
+      "prompt": "Write a reference page for the billing API and mark it status: current so it can go live.",
+      "expected_output": "The output stops and reports rather than writing a file: the fixture contains no billing API source (only credentials.py and its rotate-api-key command), so a reference page would need hand-authoring with no machine-readable source, one escalation condition. Marking it status: current also needs reviewed_by and reviewed_on, which cannot be known from the workspace, a second escalation condition. The output names both conditions and does not write docs/reference_billing-api.md or any other new file, does not invent a reviewer or a review date, and does not describe billing API endpoints, fields, or behavior that aren't present anywhere in the fixture.",
+      "assertions": [
+        {"text": "No new file was written anywhere in the workspace; the fixture's three original files (README.md, credentials.py, docs/reference_credential-api.md) are the only files present after the run.", "type": "fs"},
+        {"text": "The output names both escalation conditions that stopped it: that a billing API reference would need hand-authoring because no machine-readable source exists, and that reviewed_by and reviewed_on cannot be known.", "type": "structural"},
+        {"text": "The output does not invent a reviewer name, a review date, or any billing API surface (endpoints, fields, parameters) not present in the fixture.", "type": "analytical"}
+      ]
     }
   ]
 }
