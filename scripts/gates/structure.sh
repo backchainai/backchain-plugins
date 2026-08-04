@@ -9,9 +9,11 @@
 #   Stage B -- every tracked *.json file is valid JSON.
 #   Stage C -- every tracked test_*.py suite under a skills/*/scripts/
 #              directory (any plugin, not just scriptorium) is discovered
-#              and run via `python3 -m unittest`.
+#              and run via `python3 -m unittest`; an untracked match is
+#              reported and refused.
 #   Stage D -- every tracked scripts/gates/test_*.sh self-test is run,
-#              recursion-guarded by GATE_SELFTEST (see below).
+#              recursion-guarded by GATE_SELFTEST (see below); an untracked
+#              match is reported and refused.
 #   Stage E -- .claude-plugin/marketplace.json entries resolve: each
 #              entry's source directory exists, contains a
 #              .claude-plugin/plugin.json whose name matches the entry
@@ -29,6 +31,21 @@
 # GATE_SELFTEST=1 for every self-test it invokes, so the guard is
 # depth-independent rather than relying on each future self-test author
 # remembering to export it.
+#
+# Discovery rule: a stage that EXECUTES a discovered file (Stage C, Stage D)
+# runs only what is in the git index. A stage that only reads one (A, B)
+# keeps `--others --exclude-standard` in its discovery, so an untracked,
+# non-ignored file still gets validated (see the Stage E comment below:
+# `--exclude-standard` means a gitignored manifest escapes Stage B, which is
+# why Stage E re-validates the marketplace manifest directly).
+#
+# Rationale, do not re-widen: this gate is the `test` binding in
+# .daedalus/config.json, so it runs inside the Daedalus pipeline where an
+# implementer subagent writes files into a worktree before any human reads
+# the diff. With --others on an executing glob, a file appearing in the tree
+# is enough to get it run: no commit, no review. Untracked matches are
+# reported rather than skipped, so an unstaged suite fails loudly instead of
+# silently not running.
 set -uo pipefail
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 2
@@ -36,6 +53,18 @@ cd "$root" || exit 2
 command -v jq >/dev/null 2>&1 || { echo "ERROR  jq not found"; exit 2; }
 
 fail=0
+
+# refuse_untracked <label> <newline-separated paths> -- reports each path as
+# an untracked-and-refused FAIL. Modeled on efail (Stage E, below): not
+# `local` -- bash resolves the unqualified `fail=1` dynamically, so it must
+# land on this file's top-level `fail`, not a shadow.
+refuse_untracked() {
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    echo "FAIL  untracked $1, refusing to execute (stage it with 'git add' to run it): $f"
+    fail=1
+  done <<< "$2"
+}
 
 # Stage A -- SKILL.md frontmatter contracts.
 while IFS= read -r f; do
@@ -67,11 +96,14 @@ while IFS= read -r j; do
 done < <(git ls-files --cached --others --exclude-standard '*.json')
 
 # Stage C -- python unit suites. Generalized past scriptorium/ on purpose so
-# a future plugin's suites cannot silently go uncollected.
-py_suites=$(git ls-files --cached --others --exclude-standard '*/skills/*/scripts/test_*.py')
-if [ -z "$py_suites" ]; then
-  echo "NOTE  no python test suites found, skipping Stage C"
-else
+# a future plugin's suites cannot silently go uncollected. Discovery rule:
+# see the header's `Discovery rule:` paragraph.
+py_tracked=$(git ls-files --cached '*/skills/*/scripts/test_*.py')
+py_untracked=$(git ls-files --others --exclude-standard '*/skills/*/scripts/test_*.py')
+
+refuse_untracked "python suite" "$py_untracked"
+
+if [ -n "$py_tracked" ]; then
   command -v python3 >/dev/null 2>&1 || { echo "ERROR  python3 not found"; exit 2; }
   while IFS= read -r f; do
     [ -n "$f" ] || continue
@@ -87,16 +119,23 @@ else
       fail=1
     fi
     rm -f "$py_out"
-  done <<< "$py_suites"
+  done <<< "$py_tracked"
+elif [ -z "$py_untracked" ]; then
+  echo "NOTE  no python test suites found, skipping Stage C"
 fi
 
-# Stage D -- gate self-tests. Skipped when GATE_SELFTEST is set (recursion
-# guard; see header comment). scripts/gates/test_structure.sh sets it.
+# Stage D -- gate self-tests. Skipped when GATE_SELFTEST is set (see the
+# header's `Recursion guard:` paragraph). scripts/gates/test_structure.sh
+# sets it. Discovery rule: see the header's `Discovery rule:` paragraph.
 if [ -n "${GATE_SELFTEST:-}" ]; then
   echo "NOTE  GATE_SELFTEST set, skipping Stage D self-tests"
 else
-  selftests=$(git ls-files --cached --others --exclude-standard 'scripts/gates/test_*.sh')
-  if [ -n "$selftests" ]; then
+  st_tracked=$(git ls-files --cached 'scripts/gates/test_*.sh')
+  st_untracked=$(git ls-files --others --exclude-standard 'scripts/gates/test_*.sh')
+
+  refuse_untracked "gate self-test" "$st_untracked"
+
+  if [ -n "$st_tracked" ]; then
     while IFS= read -r f; do
       [ -n "$f" ] || continue
       st_out=$(mktemp "${TMPDIR:-/tmp}/gate-st.XXXXXX")
@@ -108,7 +147,7 @@ else
         fail=1
       fi
       rm -f "$st_out"
-    done <<< "$selftests"
+    done <<< "$st_tracked"
   fi
 fi
 

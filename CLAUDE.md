@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Repository Overview
 
-A Claude Code plugin marketplace by [Backchain](https://backchain.ai), published at `backchainai/backchain-plugins`. Skills and manifests are markdown and JSON, and some skills ship executable payload alongside them. `scripts/gates/structure.sh` runs the structural gate, which discovers and runs the stdlib python test suites shipped alongside skill scripts; `claude plugin validate .` runs the lint gate. Most plugins' `evals/` directories are `uv` projects with their own `pyproject.toml` and lockfile.
+A Claude Code plugin marketplace by [Backchain](https://backchain.ai), published at `backchainai/backchain-plugins`. Skills and manifests are markdown and JSON, and some skills ship executable payload alongside them. `scripts/gates/structure.sh` runs the structural gate, which discovers and runs the tracked stdlib python test suites shipped alongside skill scripts; `claude plugin validate .` runs the lint gate. Most plugins' `evals/` directories are `uv` projects with their own `pyproject.toml` and lockfile.
 
 ## Plugins
 
