@@ -53,11 +53,20 @@
 # .daedalus/config.json, so it runs inside the Daedalus pipeline where an
 # implementer subagent writes files into a worktree before any human reads
 # the diff. With --others on an executing glob, a file appearing in the tree
-# is enough to get it run: no commit, no review. Untracked matches are
-# reported rather than skipped, so an unstaged suite fails loudly instead of
-# silently not running. The residual gap above still applies here: this
-# control stops a NEW untracked path from executing, it does not stop
-# unstaged edits to an already-tracked path from executing before those
+# is enough to get it run: no staging, no entry in the diff a reviewer will
+# ever open. Narrowing to --cached does not mean a human has approved the
+# file: `git add` is one command, available to the same implementer subagent
+# this threat model is about (the refusal message below says so verbatim,
+# "stage it with 'git add' to run it"). What the control actually buys is
+# narrower: execution now implies the file is staged, and staging is what
+# puts a file in the diff a reviewer reads, not review itself. That is still
+# the hole worth closing -- an unstaged file executing without ever entering
+# that diff -- so forcing the file into staged state before it runs is the
+# point; it just is not a proxy for a human having looked at it. Untracked
+# matches are reported rather than skipped, so an unstaged suite fails loudly
+# instead of silently not running. The residual gap above still applies
+# here: this control stops a NEW untracked path from executing, it does not
+# stop unstaged edits to an already-tracked path from executing before those
 # edits are staged and reviewed.
 set -uo pipefail
 
@@ -110,7 +119,11 @@ done < <(git ls-files --cached --others --exclude-standard '*.json')
 
 # Stage C -- python unit suites. Generalized past scriptorium/ on purpose so
 # a future plugin's suites cannot silently go uncollected. Discovery rule:
-# see the header's `Discovery rule:` paragraph.
+# see the header's `Discovery rule:` paragraph. Breadth note: git pathspec
+# globs are not path-separator-aware, so this glob also matches a tracked
+# .py file nested under a scripts/test_*/ subtree (e.g.
+# plug/skills/demo/scripts/test_sub/helper.py), not only a test_*.py file
+# directly in scripts/.
 py_tracked=$(git ls-files --cached '*/skills/*/scripts/test_*.py')
 py_untracked=$(git ls-files --others --exclude-standard '*/skills/*/scripts/test_*.py')
 
@@ -143,6 +156,10 @@ fi
 if [ -n "${GATE_SELFTEST:-}" ]; then
   echo "NOTE  GATE_SELFTEST set, skipping Stage D self-tests"
 else
+  # Breadth note: git pathspec globs are not path-separator-aware, so this
+  # glob also matches a tracked .sh file nested under a scripts/gates/
+  # test_*/ subtree (e.g. scripts/gates/test_sub/helper.sh), not only a
+  # file directly in scripts/gates/.
   st_tracked=$(git ls-files --cached 'scripts/gates/test_*.sh')
   st_untracked=$(git ls-files --others --exclude-standard 'scripts/gates/test_*.sh')
 

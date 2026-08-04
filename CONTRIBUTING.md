@@ -29,7 +29,7 @@ bash scripts/gates/structure.sh       # structural contracts + python unit suite
 bash scripts/gates/test_structure.sh  # self-test of the gate itself
 ```
 
-`scripts/gates/structure.sh` is what the repo's automated test gate runs: it checks SKILL.md frontmatter contracts and JSON validity, and runs every tracked stdlib-unittest `test_*.py` suite under a `skills/*/scripts/` directory. Discovery keys on git index membership: a tracked suite with unstaged working-tree edits still runs, but an untracked suite is reported as a FAIL and refused, so `git add` it before running the gate. The same refusal applies to an untracked `scripts/gates/test_*.sh` self-test.
+`scripts/gates/structure.sh` is what the repo's automated test gate runs: it checks SKILL.md frontmatter contracts and JSON validity, and runs every tracked stdlib-unittest `test_*.py` suite under a `skills/*/scripts/` directory. Discovery keys on git index membership: a tracked suite with unstaged working-tree edits still runs, but an untracked suite is reported as a FAIL and refused, so `git add` it before running the gate. The same refusal applies to an untracked `scripts/gates/test_*.sh` self-test. Staging is what makes the gate run a suite at all, and staging is also what puts that suite in the diff a reviewer actually reads.
 
 ## Questions
 

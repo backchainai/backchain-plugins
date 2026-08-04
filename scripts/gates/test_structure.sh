@@ -190,7 +190,7 @@ write_marketplace() {
 # write_selftest_fixture <tmp> -- writes an executable
 # scripts/gates/test_fixture.sh into the fixture that touches the path in
 # the GATE_SELFTEST_SENTINEL environment variable and exits 0. Quoted
-# heredoc (<<'"'"'EOF'"'"'), not a bare one: $tmp comes from `mktemp -d
+# heredoc (<<'EOF'), not a bare one: $tmp comes from `mktemp -d
 # "${TMPDIR:-/tmp}/gate-selftest.XXXXXX"`, so a hostile TMPDIR (a double
 # quote, a backtick, a $(...)) must not get to interpolate into the
 # generated script's content at write time. The sentinel path is read from
