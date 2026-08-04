@@ -12,6 +12,10 @@
 #              and run via `python3 -m unittest`.
 #   Stage D -- every tracked scripts/gates/test_*.sh self-test is run,
 #              recursion-guarded by GATE_SELFTEST (see below).
+#   Stage E -- .claude-plugin/marketplace.json entries resolve: each
+#              entry's source directory exists, contains a
+#              .claude-plugin/plugin.json whose name matches the entry
+#              name, and the entry name is listed in root README.md.
 #
 # Exit-code table:
 #   0 = all contracts hold and all suites pass
@@ -105,6 +109,95 @@ else
       fi
       rm -f "$st_out"
     done <<< "$selftests"
+  fi
+fi
+
+# Stage E -- marketplace entry resolution and README listing.
+mp="$root/.claude-plugin/marketplace.json"
+if [ ! -f "$mp" ]; then
+  echo "NOTE  no marketplace manifest found, skipping Stage E"
+else
+  # Stage B already jq-validates every tracked *.json file, including this
+  # manifest, so a corrupt manifest emits a FAIL there too. Re-validating
+  # here is deliberate: Stage B discovers via `git ls-files --cached
+  # --others --exclude-standard` (so a gitignored manifest escapes it) and
+  # only sets a flag, whereas Stage E needs a local decision about whether
+  # to attempt resolution at all.
+  if ! jq empty "$mp" >/dev/null 2>&1; then
+    # Exception: this branch sits outside the `else` below where e_fail is
+    # initialized, so it sets fail=1 only, not e_fail.
+    echo "FAIL  invalid JSON, cannot resolve marketplace entries: $mp"
+    fail=1
+  else
+    e_fail=0
+    n=0
+    # efail: Stage E's failure sink. Not `local` -- bash resolves unqualified
+    # assignments dynamically, so this must land on the enclosing fail/e_fail
+    # rather than shadow them.
+    efail() { echo "FAIL  $*"; fail=1; e_fail=1; }
+    # A manifest that exists but resolves to zero plugin entries (missing
+    # "plugins" key or an empty array) is a structural defect, not a clean
+    # skip -- distinct from case_no_marketplace, where the manifest file
+    # itself is absent. `length` succeeds on objects, strings, and numbers,
+    # not just arrays, so plugins_count coming back empty only catches a
+    # narrow class of malformed shapes (e.g. `null` or a boolean). The
+    # general case -- a `.plugins` shape that `length` can measure but
+    # `.plugins[]` cannot iterate, or a single bad entry that aborts the
+    # loop partway through and silently drops the remaining entries -- is
+    # caught below by comparing plugins_count against the number of entries
+    # the loop actually read.
+    plugins_count=$(jq -r '(.plugins // []) | length' "$mp" 2>/dev/null)
+    if [ -z "$plugins_count" ]; then
+      efail "marketplace manifest plugins field could not be resolved: $mp"
+    elif [ "$plugins_count" -eq 0 ]; then
+      efail "marketplace manifest has no plugin entries: $mp"
+    else
+      # Delimit with \u001f (unit separator) rather than a tab: tab
+      # is an IFS-whitespace character, so `IFS=$'\t' read` still trims a
+      # leading empty field (an entry with a missing/empty name) instead of
+      # preserving it, silently misattributing the source value to $name.
+      # \u001f is not IFS whitespace, so empty fields are preserved.
+      while IFS=$'\x1f' read -r name source; do
+        n=$((n + 1))
+        if [ -z "$name" ]; then
+          efail "marketplace entry #$n has no name: $mp"
+          continue
+        fi
+        if [ -z "$source" ]; then
+          efail "marketplace entry '$name' has no source: $mp"
+          continue
+        fi
+        src_dir="$root/${source#./}"
+        if [ ! -d "$src_dir" ]; then
+          efail "marketplace entry '$name' source directory does not exist: $source"
+          continue
+        fi
+        plugin_manifest="$src_dir/.claude-plugin/plugin.json"
+        if [ ! -f "$plugin_manifest" ]; then
+          efail "marketplace entry '$name' missing plugin manifest: $source/.claude-plugin/plugin.json"
+          continue
+        fi
+        # Use jq's `empty` (no output), not a "null" string sentinel: a
+        # manifest with no .name and an entry literally named "null" would
+        # otherwise both resolve to the string "null" and compare equal.
+        plugin_name=$(jq -r '.name // empty' "$plugin_manifest" 2>/dev/null)
+        if [ -z "$plugin_name" ]; then
+          efail "marketplace entry '$name' plugin manifest has no name: $plugin_manifest"
+        elif [ "$plugin_name" != "$name" ]; then
+          efail "marketplace entry '$name' does not match plugin manifest name '$plugin_name': $plugin_manifest"
+        fi
+        readme="$root/README.md"
+        if [ ! -f "$readme" ]; then
+          efail "marketplace entry '$name' cannot be verified against README.md, file not found: $readme"
+        elif ! grep -qF -- "$name" "$readme"; then
+          efail "marketplace entry '$name' not listed in README.md: $readme"
+        fi
+      done < <(jq -r '.plugins[] | ((.name // "")) + "\u001f" + ((.source // ""))' "$mp" 2>/dev/null)
+      if [ "$n" -ne "$plugins_count" ]; then
+        efail "marketplace manifest declares $plugins_count plugin entries but only $n could be read: $mp"
+      fi
+    fi
+    [ "$e_fail" -eq 0 ] && echo "PASS  marketplace entries resolve ($n plugins)"
   fi
 fi
 
