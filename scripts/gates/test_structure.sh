@@ -162,14 +162,23 @@ run_gate() { _run_gate "$1" 1; }
 # environment and would otherwise leak into every subshell here, silently
 # skipping the Stage D behavior this runner exists to exercise.
 #
-# Invariant: build_fixture copies only structure.sh into the fixture's
-# scripts/gates/, never this harness (test_structure.sh) -- and Stage D
-# exports GATE_SELFTEST=1 for every self-test it invokes (the gate header's
-# `Recursion guard:` paragraph), so the recursion guard is depth-independent
-# rather than relying on this top-level invocation being guarded too. A
-# fixture that ever copies this harness into scripts/gates/ must not use
-# this runner, or the self-test would recurse into itself.
-run_gate_stage_d() { _run_gate "$1" ""; }
+# Invariant, mechanically enforced by the guard below: build_fixture copies
+# only structure.sh into the fixture's scripts/gates/, never this harness
+# (test_structure.sh) -- and Stage D exports GATE_SELFTEST=1 for every
+# self-test it invokes (the gate header's `Recursion guard:` paragraph), so
+# the recursion guard is depth-independent rather than relying on this
+# top-level invocation being guarded too. A fixture that ever copied this
+# harness into scripts/gates/ would let a cleared GATE_SELFTEST recurse into
+# it without bound; the guard below fails loudly instead of letting that
+# happen, mirroring _run_gate's own build-fixture-failure guard above.
+run_gate_stage_d() {
+  if [ -f "$1/scripts/gates/test_structure.sh" ]; then
+    out="fixture at $1 contains scripts/gates/test_structure.sh; run_gate_stage_d refuses to clear GATE_SELFTEST here, since Stage D would then recurse into this harness without bound"
+    rc=1
+    return
+  fi
+  _run_gate "$1" ""
+}
 
 # write_marketplace <tmp> -- reads manifest JSON on stdin, overwrites the
 # fixture's .claude-plugin/marketplace.json, and restages the fixture tree.
@@ -178,16 +187,22 @@ write_marketplace() {
   git -C "$1" add -A
 }
 
-# write_selftest_fixture <tmp> <sentinel> -- writes an executable
-# scripts/gates/test_fixture.sh into the fixture that touches <sentinel> and
-# exits 0. Shared by the tracked-runs/untracked-refused control pair below,
-# whose validity depends on the two fixtures being identical. Staging is
-# left to the call site, since that is the one line that distinguishes the
-# two cases.
+# write_selftest_fixture <tmp> -- writes an executable
+# scripts/gates/test_fixture.sh into the fixture that touches the path in
+# the GATE_SELFTEST_SENTINEL environment variable and exits 0. Quoted
+# heredoc (<<'"'"'EOF'"'"'), not a bare one: $tmp comes from `mktemp -d
+# "${TMPDIR:-/tmp}/gate-selftest.XXXXXX"`, so a hostile TMPDIR (a double
+# quote, a backtick, a $(...)) must not get to interpolate into the
+# generated script's content at write time. The sentinel path is read from
+# the environment at RUN time instead; each call site exports
+# GATE_SELFTEST_SENTINEL immediately before invoking the fixture. Shared by
+# the tracked-runs/untracked-refused control pair below, whose validity
+# depends on the two fixtures being identical. Staging is left to the call
+# site, since that is the one line that distinguishes the two cases.
 write_selftest_fixture() {
-  cat >"$1/scripts/gates/test_fixture.sh" <<EOF
+  cat >"$1/scripts/gates/test_fixture.sh" <<'EOF'
 #!/usr/bin/env bash
-touch "$2"
+touch "$GATE_SELFTEST_SENTINEL"
 exit 0
 EOF
   chmod +x "$1/scripts/gates/test_fixture.sh"
@@ -254,6 +269,15 @@ case_untracked_python_refused() {
   # output could be explained by a swallowed stream, absence of the sentinel
   # cannot. It also makes a future re-widening of the glob back to
   # --cached --others fail this case mechanically.
+  #
+  # Quoted heredoc (<<'EOF'), not a bare one: $sentinel derives from $tmp,
+  # which comes from `mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX"`, so a
+  # hostile TMPDIR must not get to interpolate into the generated python
+  # source at write time. The sentinel path is read from the
+  # PYTHON_SENTINEL_PATH environment variable at RUN time instead, exported
+  # immediately before invoking the fixture -- writing the sentinel stays
+  # the first module-level action before `import unittest`, which is the
+  # load-bearing ordering property this case pins.
   local name="untracked-python-refused (unstaged python suite is refused, not executed)"
   local tmp out rc sentinel
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
@@ -262,10 +286,11 @@ case_untracked_python_refused() {
   rm -f "$tmp/plug/skills/demo/scripts/test_demo.py"
   git -C "$tmp" add -A >/dev/null 2>&1
   sentinel="$tmp/sentinel_untracked_python_ran"
-  cat >"$tmp/plug/skills/demo/scripts/test_demo.py" <<EOF
+  cat >"$tmp/plug/skills/demo/scripts/test_demo.py" <<'EOF'
 #!/usr/bin/env python3
+import os
 import pathlib
-pathlib.Path("$sentinel").write_text("ran")
+pathlib.Path(os.environ["PYTHON_SENTINEL_PATH"]).write_text("ran")
 import unittest
 
 
@@ -277,6 +302,7 @@ class DemoTest(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 EOF
+  export PYTHON_SENTINEL_PATH="$sentinel"
   run_gate "$tmp"
   # The refusal text and the file path are asserted as a single anchored grep
   # (not two independent greps) so a gate that emits the refusal for one file
@@ -867,8 +893,9 @@ case_tracked_selftest_runs() {
   trap 'rm -rf "$tmp"' RETURN
   build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
   sentinel="$tmp/sentinel_tracked_selftest_ran"
-  write_selftest_fixture "$tmp" "$sentinel"
+  write_selftest_fixture "$tmp"
   git -C "$tmp" add -A >/dev/null 2>&1
+  export GATE_SELFTEST_SENTINEL="$sentinel"
   run_gate_stage_d "$tmp"
   if [ "$rc" -eq 0 ] && [ -f "$sentinel" ]; then
     echo "ok  $name"
@@ -889,8 +916,9 @@ case_untracked_selftest_refused() {
   trap 'rm -rf "$tmp"' RETURN
   build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
   sentinel="$tmp/sentinel_untracked_selftest_ran"
-  write_selftest_fixture "$tmp" "$sentinel"
+  write_selftest_fixture "$tmp"
   # Deliberately left unstaged.
+  export GATE_SELFTEST_SENTINEL="$sentinel"
   run_gate_stage_d "$tmp"
   # Anchored grep (not two independent greps) so a gate emitting the refusal
   # for one file and the target path on an unrelated line cannot pass.

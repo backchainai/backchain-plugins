@@ -33,11 +33,21 @@
 # remembering to export it.
 #
 # Discovery rule: a stage that EXECUTES a discovered file (Stage C, Stage D)
-# runs only what is in the git index. A stage that only reads one (A, B)
-# keeps `--others --exclude-standard` in its discovery, so an untracked,
-# non-ignored file still gets validated (see the Stage E comment below:
-# `--exclude-standard` means a gitignored manifest escapes Stage B, which is
-# why Stage E re-validates the marketplace manifest directly).
+# selects PATHS from `git ls-files --cached` (the git index), then executes
+# whatever bytes currently sit at that path in the WORKING TREE -- `python3
+# -m unittest` and `bash` open working-tree content, not the indexed blob.
+# What this buys: an untracked file can never introduce a NEW executed path,
+# since a path absent from the index never appears in `--cached` output.
+# What this does NOT buy: pinning the CONTENT of a path that is already
+# tracked. A tracked suite whose working-tree bytes were edited but never
+# staged still executes with those unstaged edits, because `--cached` lists
+# indexed paths, it does not diff the index against the working tree or
+# refuse to run a path whose content has drifted from what is staged. A
+# stage that only reads a discovered file (A, B) keeps `--others
+# --exclude-standard` in its discovery, so an untracked, non-ignored file
+# still gets validated (see the Stage E comment below: `--exclude-standard`
+# means a gitignored manifest escapes Stage B, which is why Stage E
+# re-validates the marketplace manifest directly).
 #
 # Rationale, do not re-widen: this gate is the `test` binding in
 # .daedalus/config.json, so it runs inside the Daedalus pipeline where an
@@ -45,7 +55,10 @@
 # the diff. With --others on an executing glob, a file appearing in the tree
 # is enough to get it run: no commit, no review. Untracked matches are
 # reported rather than skipped, so an unstaged suite fails loudly instead of
-# silently not running.
+# silently not running. The residual gap above still applies here: this
+# control stops a NEW untracked path from executing, it does not stop
+# unstaged edits to an already-tracked path from executing before those
+# edits are staged and reviewed.
 set -uo pipefail
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 2
