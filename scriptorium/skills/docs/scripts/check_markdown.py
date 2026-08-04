@@ -6,6 +6,12 @@ not resolve every construct the spec defines. It is a line-based scanner for
 the specific authoring pitfalls that recur in agent-generated markdown, each
 one traceable to a section of the spec at https://spec.commonmark.org/0.31.2/.
 
+Document-derived text (heading marks, list markers, reference labels) is
+sanitized before it is interpolated into a finding's message or rendered
+into the stdout table, so a crafted document cannot inject instruction-shaped
+text or extra `|` characters into an agent's view of the results. A file or
+stdin read is capped at MAX_INPUT_CHARS characters.
+
 Python 3 standard library only. No third-party imports, no install step.
 Run `python3 check_markdown.py --llms` for a machine-readable self-description.
 """
@@ -19,6 +25,12 @@ import sys
 from dataclasses import dataclass
 
 PROG_NAME = "check_markdown.py"
+
+# Cap on characters read from a file or stdin, in lint_file. 5,000,000
+# characters is far larger than any legitimate markdown document while
+# still bounding worst-case memory and per-line regex work against an
+# adversarial or accidental multi-gigabyte input.
+MAX_INPUT_CHARS = 5_000_000
 
 
 # --------------------------------------------------------------------------
@@ -112,6 +124,57 @@ def scan_fences(lines: list[str]) -> tuple[list[Fence], set[int]]:
         )
 
     return fences, fenced_lines
+
+
+# --------------------------------------------------------------------------
+# Output sanitization: document-derived text is untrusted. It is sanitized
+# before interpolation into a Finding.message, and format_markdown escapes
+# pipes per cell again as defence in depth for a check that forgets to.
+# --------------------------------------------------------------------------
+
+_CONTROL_CHAR_RE = re.compile(r"[\x00-\x1f\x7f]")
+_WHITESPACE_RUN_RE = re.compile(r"\s+")
+_PIPE_RE = re.compile(r"(?<!\\)\|")
+
+
+def _escape_pipes(text: str) -> str:
+    """Escape every '|' not already preceded by a backslash as '\\|'.
+    Idempotent: a '\\|' already in `text` is left alone, since its '|' is
+    preceded by a backslash. Sound only when the only backslashes `text`
+    can contain are ones this module wrote, which `_sanitize` guarantees by
+    stripping every document-derived backslash before this runs.
+    """
+    return _PIPE_RE.sub(r"\\|", text)
+
+
+def _sanitize(text: str, limit: int = 120) -> str:
+    """Make document-derived text safe to interpolate into a Finding.message
+    and to render as a table cell.
+
+    Order matters and is fixed:
+    1. Every ASCII control character (U+0000-U+001F and U+007F, which
+       covers CR, LF, and tab) becomes a single space.
+    2. Every backslash becomes a single space. A backslash carries no
+       meaning in a table cell, and a document-derived `\\|` would
+       otherwise be indistinguishable from an escape this module writes
+       itself; removing every document backslash here makes the negative
+       lookbehind in `_escape_pipes` sound, since the only backslashes
+       left by the time it runs are the ones it adds.
+    3. Whitespace runs collapse to one space; the ends are stripped.
+    4. The result truncates to `limit` characters: past that length, the
+       first `limit - 1` characters are kept and a single-character
+       ellipsis is appended, so the text fed to escaping is never longer
+       than `limit`. Escaping can grow the result past `limit`, so the
+       real bound on the return value is `2 * limit`.
+    5. Pipes are escaped last, after truncation, so truncation can never
+       cut an escape sequence in half.
+    """
+    text = _CONTROL_CHAR_RE.sub(" ", text)
+    text = text.replace("\\", " ")
+    text = _WHITESPACE_RUN_RE.sub(" ", text).strip()
+    if len(text) > limit:
+        text = text[: limit - 1] + "…"
+    return _escape_pipes(text)
 
 
 # --------------------------------------------------------------------------
@@ -225,9 +288,10 @@ def check_headings(
                             severity=Severity.ERROR,
                             section="4.2",
                             message=(
-                                f"ATX heading marker '{hashes}' is not "
-                                "followed by a space, tab, or end of line; "
-                                "renders as literal text, not a heading."
+                                f"ATX heading marker '{_sanitize(hashes)}' is "
+                                "not followed by a space, tab, or end of "
+                                "line; renders as literal text, not a "
+                                "heading."
                             ),
                         )
                     )
@@ -389,9 +453,9 @@ def check_list_markers(
                     severity=Severity.ADVISORY,
                     section="5.3",
                     message=(
-                        f"List marker changed from '{previous[1]}' to "
-                        f"'{marker}' mid-list; CommonMark starts a new list "
-                        "here."
+                        f"List marker changed from '{_sanitize(previous[1])}' "
+                        f"to '{_sanitize(marker)}' mid-list; CommonMark "
+                        "starts a new list here."
                     ),
                 )
             )
@@ -455,8 +519,9 @@ def check_unresolved_references(
                     severity=Severity.ADVISORY,
                     section="4.7",
                     message=(
-                        f"Reference link '[{text}][{label}]' has no "
-                        f"matching '[{resolved_label}]: ...' definition."
+                        f"Reference link '[{_sanitize(text)}]"
+                        f"[{_sanitize(label)}]' has no matching "
+                        f"'[{_sanitize(resolved_label)}]: ...' definition."
                     ),
                 )
             )
@@ -541,15 +606,34 @@ def lint_file(path: str, strict_commonmark: bool = False) -> list[Finding]:
     """Read one file (or stdin, for `-`) and lint it. Raises OSError or
     UnicodeDecodeError on an unreadable file; the caller reports that as a
     diagnostic and exits 2.
+
+    The read is capped at MAX_INPUT_CHARS + 1 characters. Input longer than
+    MAX_INPUT_CHARS is truncated to that many characters and a diagnostic
+    naming the file (or stdin) and the cap is written to stderr. Content
+    past the cap is never scanned, so a finding that would only appear past
+    that point is never reported, and the exit code for a truncated run can
+    differ from the exit code an uncapped run of the same document would
+    produce. The cap does not by itself introduce a new failure exit: an
+    oversize input is truncated and linted rather than turned into an
+    exit-2 could-not-run.
     """
     if path == "-":
         print(f"{PROG_NAME}: reading stdin", file=sys.stderr)
-        text = sys.stdin.read()
+        text = sys.stdin.read(MAX_INPUT_CHARS + 1)
         display_name = "<stdin>"
     else:
         with open(path, "r", encoding="utf-8") as handle:
-            text = handle.read()
+            text = handle.read(MAX_INPUT_CHARS + 1)
         display_name = path
+
+    if len(text) > MAX_INPUT_CHARS:
+        text = text[:MAX_INPUT_CHARS]
+        print(
+            f"{PROG_NAME}: {display_name}: input exceeds "
+            f"{MAX_INPUT_CHARS}-character cap; truncated",
+            file=sys.stderr,
+        )
+
     return lint_text(text, display_name, strict_commonmark=strict_commonmark)
 
 
@@ -572,8 +656,8 @@ def format_markdown(findings: list[Finding]) -> str:
             lines.append("|---|---|---|---|")
             current_file = finding.file
         lines.append(
-            f"| {finding.line} | {finding.severity.value.upper()} | "
-            f"{finding.section} | {finding.message} |"
+            f"| {finding.line} | {_escape_pipes(finding.severity.value.upper())} | "
+            f"{_escape_pipes(finding.section)} | {_escape_pipes(finding.message)} |"
         )
     lines.append("")
     return "\n".join(lines)
@@ -616,6 +700,13 @@ spec defines that are easy to write by accident and hard to spot by eye.
 - `-` as a file argument reads that document from stdin (diagnostic
   "reading stdin" is written to stderr when this happens).
 - Multiple files may be mixed with `-` in one invocation.
+- Each file or stdin read is capped at 5,000,000 characters; an oversize
+  input is truncated to the cap and a diagnostic naming the file and the
+  cap is written to stderr. Content past the cap is not scanned, so a
+  finding located only past that point is not reported, and the exit code
+  for the truncated run can differ from an uncapped run of the same
+  document. The cap does not by itself turn a run into an unreadable-file
+  exit 2; a truncated input is still linted normally.
 
 ## Output format
 - Findings render as a markdown table (or tables, one per file) on stdout.
