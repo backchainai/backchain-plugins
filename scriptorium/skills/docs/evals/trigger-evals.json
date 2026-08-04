@@ -1,0 +1,82 @@
+[
+  {
+    "query": "I just wrote install-postgres.md at the repo root last night. Where should this actually live, and does its shape need to change once it moves?",
+    "should_trigger": true
+  },
+  {
+    "query": "Our guide for restarting a stalled Kubernetes pod has turned into an essay: two big sections explaining how the scheduler works and why pods crash-loop, and only at the very bottom do the actual kubectl commands show up. Can you help me untangle it before review?",
+    "should_trigger": true
+  },
+  {
+    "query": "My teammate wrote a page called 'Understanding our event bus' that reads half like a lesson and half like a lookup table of topics and payloads. Where should the pieces of this go?",
+    "should_trigger": true
+  },
+  {
+    "query": "A new hire is going to read this walkthrough for setting up their first local environment, but a senior engineer flagged that it reads more like a quick reference for someone who already knows the ropes. Which of those two is it supposed to be, and should we split it?",
+    "should_trigger": true
+  },
+  {
+    "query": "Before we write a single page, I want to lay out our whole documentation folder structure: separate directories for walkthroughs, task guides, lookup pages, and background explanations. Can you create all of that scaffolding for me right now?",
+    "should_trigger": true
+  },
+  {
+    "query": "Our explanation of why we chose event sourcing over CRUD has crept forward into a numbered list of migration steps near the end. Is that still in the right shape, or does something need to move?",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to draft a page that walks a brand new user through connecting their first data source end to end. What structure should this follow, and are there formatting rules I should run it against before handing it off for review?",
+    "should_trigger": true
+  },
+  {
+    "query": "Can you check our API documentation page for markdown issues before we publish it? I suspect there are heading problems and maybe some stray trailing spaces.",
+    "should_trigger": true
+  },
+  {
+    "query": "I'm about to write documentation for our new webhook retry feature, but I don't know whether it should read as a tutorial or a reference page. Can you help me settle that before I start drafting?",
+    "should_trigger": true
+  },
+  {
+    "query": "Someone on the team dumped three different topics into one 'Advanced Usage' doc: a rationale section, a step-by-step migration guide, and a full options table. Can you help me figure out how to break this apart and where each piece should land?",
+    "should_trigger": true
+  },
+  {
+    "query": "We're switching from REST to gRPC for the internal service mesh and I need to write up the decision with the alternatives we considered and why we picked this one. Can you help me structure that write-up?",
+    "should_trigger": false
+  },
+  {
+    "query": "I need to draft the release notes for version 4.2, listing the bug fixes, the two breaking changes, and the new rate-limit headers. Can you help me put that together?",
+    "should_trigger": false
+  },
+  {
+    "query": "I've got a big diff that touches the auth middleware, the session store, and three config files. Can you help me write a commit message and PR description that actually explains what changed and why?",
+    "should_trigger": false
+  },
+  {
+    "query": "Our README is a mess: it buries the install instructions under a wall of badges and a long project history nobody reads anymore. Can you help me trim it down and reorder it?",
+    "should_trigger": false
+  },
+  {
+    "query": "How do I make a table in markdown where one of the cells needs to span two lines? I keep getting the formatting wrong.",
+    "should_trigger": false
+  },
+  {
+    "query": "I just refactored this payment retry function and the docstring is now out of date with what the code actually does. Can you help me rewrite the docstring and the inline comments to match?",
+    "should_trigger": false
+  },
+  {
+    "query": "I want to update our CLAUDE.md so the agent stops running tests before every commit and instead only runs them before a push. Can you help me rework that section?",
+    "should_trigger": false
+  },
+  {
+    "query": "Our CLI reference page still documents a --legacy-auth flag that we ripped out of the tool two major versions ago, and support keeps getting confused tickets about it. Can you go through and bring that reference in line with what the CLI actually accepts today?",
+    "should_trigger": false
+  },
+  {
+    "query": "I'm renaming a bunch of internal runbooks our on-call team uses so the naming matches our new incident severity levels. Can you help me figure out a consistent naming scheme?",
+    "should_trigger": false
+  },
+  {
+    "query": "I'd like you to review our troubleshooting FAQ for tone: does it sound too formal compared to the rest of our brand voice, and are there spots that come across as condescending to a frustrated user? Can you flag those for me?",
+    "should_trigger": false
+  }
+]
