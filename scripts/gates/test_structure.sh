@@ -16,6 +16,10 @@
 # and others fail with a misleading message -- the harness checks once, up
 # front, and fails outright if python3 is not available.
 #
+# Each Stage E case asserts on a diagnostic substring unique to the branch
+# under test, not on a fixture literal (e.g. "demo-plugin") that other
+# branches also echo back.
+#
 # Exit 0 iff every case passed. Exit 1 if any case failed.
 set -uo pipefail
 
@@ -39,6 +43,9 @@ overall=0
 #   plug/skills/demo/SKILL.md        -- valid frontmatter (name: demo)
 #   plug/.claude-plugin/plugin.json  -- valid JSON
 #   plug/skills/demo/scripts/test_demo.py -- stdlib unittest, assertion controlled by caller
+#   .claude-plugin/marketplace.json  -- one entry: name demo-plugin, source ./plug
+#   README.md                        -- lists "demo-plugin", so the fixture is
+#                                        green for Stage E out of the box
 #
 # build_fixture and run_gate (below) deliberately do not declare their own
 # `local tmp`/`out`/`rc`/`assertion`. Every case function below declares
@@ -81,6 +88,24 @@ EOF
 }
 EOF
 
+  mkdir -p "$tmp/.claude-plugin"
+  cat >"$tmp/.claude-plugin/marketplace.json" <<'EOF'
+{
+  "plugins": [
+    {
+      "name": "demo-plugin",
+      "source": "./plug"
+    }
+  ]
+}
+EOF
+
+  cat >"$tmp/README.md" <<'EOF'
+# fixture
+
+demo-plugin is listed here.
+EOF
+
   if [ "$assertion" = "pass" ]; then
     rhs=1
   else
@@ -119,6 +144,13 @@ run_gate() {
   rc=$?
 }
 
+# write_marketplace <tmp> -- reads manifest JSON on stdin, overwrites the
+# fixture's .claude-plugin/marketplace.json, and restages the fixture tree.
+write_marketplace() {
+  cat >"$1/.claude-plugin/marketplace.json"
+  git -C "$1" add -A
+}
+
 case_green() {
   local name="green (passing python suite)"
   local tmp out rc pycache
@@ -136,6 +168,7 @@ case_green() {
   if [ "$rc" -eq 0 ] \
     && printf '%s' "$out" | grep -q "PASS  python suite" \
     && printf '%s' "$out" | grep -qE 'Ran [1-9][0-9]* tests?' \
+    && printf '%s' "$out" | grep -q "PASS  marketplace entries resolve (1 plugins)" \
     && [ -z "$pycache" ]; then
     echo "ok  $name"
     return 0
@@ -275,12 +308,410 @@ case_multi_failure() {
   return 1
 }
 
+case_red_marketplace_source_missing() {
+  # Stage E: marketplace entry whose source directory does not exist. An
+  # unresolvable entry must FAIL loudly here, not get masked behind a
+  # swallowed jq error.
+  local name="red-on-marketplace (source directory does not exist)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": [
+    {
+      "name": "demo-plugin",
+      "source": "./does-not-exist"
+    }
+  ]
+}
+EOF
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "source directory does not exist" \
+    && printf '%s' "$out" | grep -q "does-not-exist"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 naming the missing source)"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_missing_source() {
+  # Stage E: marketplace entry that has a name but no "source" field at all
+  # (as opposed to case_red_marketplace_source_missing, where source is
+  # present but points at a directory that does not exist). Pins the
+  # `[ -z "$source" ]` branch, which no other case exercises.
+  local name="red-on-marketplace (entry missing source field)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": [
+    {
+      "name": "demo-plugin"
+    }
+  ]
+}
+EOF
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "has no source" \
+    && printf '%s' "$out" | grep -q "demo-plugin"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'has no source' naming demo-plugin)"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_missing_manifest() {
+  # Stage E: marketplace entry whose source directory EXISTS but contains no
+  # .claude-plugin/plugin.json. Distinct from
+  # case_red_marketplace_source_missing (source directory absent): here the
+  # source-directory-exists check passes, so control genuinely reaches the
+  # `[ ! -f "$plugin_manifest" ]` branch rather than short-circuiting on the
+  # earlier check.
+  local name="red-on-marketplace (source directory exists but has no plugin manifest)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  mkdir -p "$tmp/plug3"
+  cat >"$tmp/plug3/README.md" <<'EOF'
+placeholder file so plug3 exists as a real directory with no plugin manifest
+EOF
+  cat >"$tmp/.claude-plugin/marketplace.json" <<'EOF'
+{
+  "plugins": [
+    {
+      "name": "demo-plugin",
+      "source": "./plug3"
+    }
+  ]
+}
+EOF
+  git -C "$tmp" add -A
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "missing plugin manifest" \
+    && printf '%s' "$out" | grep -q "plug3/.claude-plugin/plugin.json"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'missing plugin manifest' naming plug3/.claude-plugin/plugin.json)"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_wrong_dir() {
+  # Stage E: marketplace entry name does not match the plugin manifest at
+  # its source. Pins the name-mismatch diagnostic against a fixture that is
+  # otherwise byte-identical to a correct one.
+  local name="red-on-marketplace (entry name does not match plugin manifest name)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  mkdir -p "$tmp/plug2/.claude-plugin"
+  cat >"$tmp/plug2/.claude-plugin/plugin.json" <<'EOF'
+{
+  "name": "other-plugin",
+  "version": "0.0.0"
+}
+EOF
+  cat >"$tmp/.claude-plugin/marketplace.json" <<'EOF'
+{
+  "plugins": [
+    {
+      "name": "demo-plugin",
+      "source": "./plug2"
+    }
+  ]
+}
+EOF
+  git -C "$tmp" add -A
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "demo-plugin" \
+    && printf '%s' "$out" | grep -q "other-plugin" \
+    && printf '%s' "$out" | grep -q "does not match plugin manifest name"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 naming both demo-plugin and other-plugin, with 'does not match plugin manifest name')"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_readme_missing_entry() {
+  # Stage E: marketplace entry not listed in root README.md. README.md
+  # stays present and non-empty; only the listing for this entry is
+  # removed.
+  local name="red-on-marketplace (entry not listed in README.md)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  cat >"$tmp/README.md" <<'EOF'
+# fixture
+
+nothing listed here.
+EOF
+  git -C "$tmp" add -A
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "not listed in README.md" \
+    && printf '%s' "$out" | grep -q "demo-plugin"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 naming demo-plugin as not listed in README.md)"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_readme_missing() {
+  # Stage E: no README.md exists at the repo root at all. Distinct from
+  # case_red_readme_missing_entry, which deliberately keeps README.md
+  # present and only removes the entry's listing -- that case exercises
+  # only the `elif` sibling. Flipping `[ ! -f "$readme" ]` to false leaves
+  # every other case green, so only this case pins the branch.
+  local name="red-on-marketplace (README.md file not found)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  rm -f "$tmp/README.md"
+  git -C "$tmp" add -A
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "cannot be verified against README.md"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'cannot be verified against README.md')"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_empty_plugins() {
+  # Stage E: marketplace manifest present but resolving to zero plugin
+  # entries (empty "plugins" array). Distinct from case_no_marketplace,
+  # where the manifest file itself is absent -- a manifest that exists with
+  # no entries is a structural defect, not a clean skip.
+  local name="red-on-marketplace (empty plugins array)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": []
+}
+EOF
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "marketplace manifest has no plugin entries"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'marketplace manifest has no plugin entries')"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_plugins_unresolvable() {
+  # Stage E: marketplace manifest's "plugins" field is present but is not an
+  # array (e.g. a bare boolean), so `jq '(.plugins // []) | length'` errors
+  # and plugins_count comes back empty. Distinct from
+  # case_red_marketplace_empty_plugins, where "plugins": [] resolves cleanly
+  # to a genuine zero; this case pins that the two paths are
+  # distinguishable.
+  local name="red-on-marketplace (plugins field could not be resolved)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": true
+}
+EOF
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "could not be resolved"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'could not be resolved')"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_missing_name() {
+  # Stage E: marketplace entry missing its name field. An entry with no
+  # name must FAIL naming its position, not be silently skipped.
+  local name="red-on-marketplace (entry missing name)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": [
+    {
+      "source": "./plug"
+    }
+  ]
+}
+EOF
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "entry #1 has no name"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'entry #1 has no name')"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_entry_dropped() {
+  # Stage E: well-formed 2-entry plugins array whose second entry has a
+  # non-string "name" (a number). jq prints the first entry's line, then
+  # aborts with a type error on the second before it can emit anything, so
+  # the loop must not silently read only 1 of 2 entries and report a
+  # truncated PASS.
+  local name="red-on-marketplace (jq aborts partway through, one entry silently dropped)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": [
+    {
+      "name": "demo-plugin",
+      "source": "./plug"
+    },
+    {
+      "name": 123,
+      "source": "./plug2"
+    }
+  ]
+}
+EOF
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "declares 2 plugin entries but only 1 could be read"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'declares 2 plugin entries but only 1 could be read')"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_plugins_object() {
+  # Stage E: "plugins" is a JSON object rather than an array. `length`
+  # succeeds on an object (key count), so plugins_count resolves to a
+  # nonzero number and the earlier `-z "$plugins_count"` branch never fires
+  # -- but `.plugins[]` then errors on the first value it tries to index,
+  # so the loop reads zero entries. This must FAIL, not report a truncated
+  # PASS.
+  local name="red-on-marketplace (plugins field is an object, not an array)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": {
+    "a": 1,
+    "b": 2
+  }
+}
+EOF
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "declares 2 plugin entries but only 0 could be read"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'declares 2 plugin entries but only 0 could be read')"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_red_marketplace_plugins_string() {
+  # Stage E: "plugins" is a JSON string rather than an array. `length`
+  # succeeds on a string (character count), so plugins_count again resolves
+  # to a nonzero number, but `.plugins[]` errors on "cannot iterate over
+  # string" before yielding anything, so the loop reads zero entries. This
+  # must FAIL, not report a truncated PASS.
+  local name="red-on-marketplace (plugins field is a string, not an array)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  write_marketplace "$tmp" <<'EOF'
+{
+  "plugins": "abc"
+}
+EOF
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "declares 3 plugin entries but only 0 could be read"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with 'declares 3 plugin entries but only 0 could be read')"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_no_marketplace() {
+  # Stage E: no marketplace manifest at the repo root. rc must stay 0 AND
+  # the specific NOTE must be present, so "Stage E skipped" is
+  # distinguishable from "Stage E absent". Mirrors case_no_suites.
+  local name="no-marketplace (no .claude-plugin/marketplace.json present)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  rm -f "$tmp/.claude-plugin/marketplace.json"
+  git -C "$tmp" add -A
+  run_gate "$tmp"
+  if [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "no marketplace manifest found"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 0 with 'no marketplace manifest found')"
+  printf '%s\n' "$out"
+  return 1
+}
+
 case_green || overall=1
 case_red_python || overall=1
 case_red_skill || overall=1
 case_red_json || overall=1
 case_no_suites || overall=1
 case_multi_failure || overall=1
+case_red_marketplace_source_missing || overall=1
+case_red_marketplace_missing_source || overall=1
+case_red_marketplace_missing_manifest || overall=1
+case_red_marketplace_wrong_dir || overall=1
+case_red_readme_missing_entry || overall=1
+case_red_readme_missing || overall=1
+case_red_marketplace_empty_plugins || overall=1
+case_red_marketplace_plugins_unresolvable || overall=1
+case_red_marketplace_missing_name || overall=1
+case_red_marketplace_entry_dropped || overall=1
+case_red_marketplace_plugins_object || overall=1
+case_red_marketplace_plugins_string || overall=1
+case_no_marketplace || overall=1
 
 if [ "$overall" -eq 0 ]; then
   echo "ok  all gate self-test cases passed"
