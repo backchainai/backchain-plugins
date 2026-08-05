@@ -1,6 +1,6 @@
 ---
 name: docs
-description: "Routes one document to its Diataxis mode (tutorial, how-to guide, reference, explanation), drafts or edits it under that mode's constraints, and checks its markdown form against CommonMark 0.31.2. Use when: writing or generating documentation, deciding where a doc belongs, moving or reorganizing docs, splitting a document serving two audiences, reviewing docs for mode contamination, checking markdown form. Trigger phrases: what kind of doc is this, where does this doc belong, split this document, review this doc's placement, check this markdown, is this a tutorial or a how-to guide. Not for: ADRs and decision records, commit messages, changelogs and release notes, READMEs, code comments and docstrings, CLAUDE.md and agent or tool config. Checks mode, placement, and markdown form only, never factual accuracy."
+description: "Routes one document to its Diataxis mode (tutorial, how-to guide, reference, explanation), drafts or edits it under that mode's constraints, and checks its markdown form against CommonMark 0.31.2. Use when: writing or generating documentation, deciding where a doc belongs, moving or reorganizing docs, splitting a document serving two audiences, reviewing docs for mode contamination, checking markdown form. Trigger phrases: what kind of doc is this, where does this doc belong, split this document, review this doc's placement, check this markdown, is this a tutorial or a how-to guide. Not for: ADRs and decision records, commit messages, changelogs and release notes, code comments and docstrings, CLAUDE.md and agent or tool config. Checks mode, placement, and markdown form only, never factual accuracy."
 disable-model-invocation: false
 metadata:
   author: Backchain
@@ -28,13 +28,12 @@ Check the request against this table before routing anything:
 | Changelogs, release notes | Chronological by nature; no mode applies |
 | Code comments and docstrings | Belong to the code, not the documentation set |
 | `CLAUDE.md`, agent and tool config | Instructions to a machine, not a user |
-| READMEs | A landing page, legitimately hybrid; advise, do not split |
 
 When the request names one of these, say which row applies and stop before opening the compass.
 
 None of the four modes fits an artifact that is fundamentally dated, historical, or machine-facing.
 
-The README row is a deliberate exception to the split guidance later in this skill. Advise on README structure if asked (trim it, reorder it, link out more aggressively), but do not propose extracting its parts into separate mode documents the way this skill would for a contaminated tutorial or how-to guide.
+READMEs are in scope: advise on README structure when asked (trim it, reorder it, link out more aggressively), but never propose extracting its parts into separate mode documents the way this skill would for a contaminated tutorial or how-to guide. A README is a landing page and legitimately hybrid.
 
 ### When scope is ambiguous
 

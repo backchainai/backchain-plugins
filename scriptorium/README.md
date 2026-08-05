@@ -28,7 +28,6 @@ Diataxis governs product documentation written for users. It does not govern:
 - changelogs and release notes
 - code comments and docstrings
 - CLAUDE.md and agent/tool configuration
-- READMEs
 
 ## Status
 

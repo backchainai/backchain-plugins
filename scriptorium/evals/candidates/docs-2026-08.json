@@ -1,0 +1,10 @@
+[
+  {
+    "name": "incumbent",
+    "description": "Routes one document to its Diataxis mode (tutorial, how-to guide, reference, explanation), drafts or edits it under that mode's constraints, and checks its markdown form against CommonMark 0.31.2. Use when: writing or generating documentation, deciding where a doc belongs, moving or reorganizing docs, splitting a document serving two audiences, reviewing docs for mode contamination, checking markdown form. Trigger phrases: what kind of doc is this, where does this doc belong, split this document, review this doc's placement, check this markdown, is this a tutorial or a how-to guide. Not for: ADRs and decision records, commit messages, changelogs and release notes, code comments and docstrings, CLAUDE.md and agent or tool config. Checks mode, placement, and markdown form only, never factual accuracy."
+  },
+  {
+    "name": "control-vague",
+    "description": "Helps with documentation and writing tasks."
+  }
+]

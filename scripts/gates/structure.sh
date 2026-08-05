@@ -123,9 +123,11 @@ done < <(git ls-files --cached --others --exclude-standard '*.json')
 # globs are not path-separator-aware, so this glob also matches a tracked
 # .py file nested under a scripts/test_*/ subtree (e.g.
 # plug/skills/demo/scripts/test_sub/helper.py), not only a test_*.py file
-# directly in scripts/.
-py_tracked=$(git ls-files --cached '*/skills/*/scripts/test_*.py')
-py_untracked=$(git ls-files --others --exclude-standard '*/skills/*/scripts/test_*.py')
+# directly in scripts/. The second glob, scripts/*/test_*.py, collects
+# repo-level tooling suites (e.g. scripts/evals/test_run_trigger_evals.py)
+# that sit beside scripts/gates/ rather than under any one plugin's skill.
+py_tracked=$(git ls-files --cached '*/skills/*/scripts/test_*.py' 'scripts/*/test_*.py')
+py_untracked=$(git ls-files --others --exclude-standard '*/skills/*/scripts/test_*.py' 'scripts/*/test_*.py')
 
 refuse_untracked "python suite" "$py_untracked"
 
