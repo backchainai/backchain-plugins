@@ -309,6 +309,37 @@ class BuildPluginDirTest(unittest.TestCase):
         skill_id = rte.build_plugin_dir(self.skill_path, "Description.", dest)
         self.assertEqual(skill_id, "trigeval-idcheck:docs")
 
+    def _write_skill_with_name(self, skill_name: str) -> Path:
+        skill_path = self.tmp / "hostile-skill"
+        skill_path.mkdir(exist_ok=True)
+        skill_md = SAMPLE_SKILL_MD.replace("name: docs", f"name: {skill_name}")
+        (skill_path / "SKILL.md").write_text(skill_md, encoding="utf-8")
+        return skill_path
+
+    def test_traversal_name_raises_harness_error(self):
+        skill_path = self._write_skill_with_name("../../../../tmp/evil")
+        dest = self.tmp / "trigeval-traversal"
+        with self.assertRaises(rte.HarnessError):
+            rte.build_plugin_dir(skill_path, "Description.", dest)
+
+    def test_absolute_name_raises_harness_error(self):
+        skill_path = self._write_skill_with_name("/tmp/evil")
+        dest = self.tmp / "trigeval-absolute"
+        with self.assertRaises(rte.HarnessError):
+            rte.build_plugin_dir(skill_path, "Description.", dest)
+
+    def test_illegal_characters_in_name_raises_harness_error(self):
+        skill_path = self._write_skill_with_name("Docs Skill!")
+        dest = self.tmp / "trigeval-illegal"
+        with self.assertRaises(rte.HarnessError):
+            rte.build_plugin_dir(skill_path, "Description.", dest)
+
+    def test_normal_name_still_succeeds(self):
+        skill_path = self._write_skill_with_name("docs")
+        dest = self.tmp / "trigeval-normal"
+        skill_id = rte.build_plugin_dir(skill_path, "Description.", dest)
+        self.assertEqual(skill_id, "trigeval-normal:docs")
+
 
 # --------------------------------------------------------------------------
 # split_eval_set
@@ -580,6 +611,42 @@ class MainHarnessErrorTest(_MainHarnessTestBase):
         self.candidates_path.write_text(json.dumps([{"name": "c1"}]), encoding="utf-8")
         self.assertEqual(rte.main(self._argv()), 1)
 
+    def test_eval_set_query_starting_with_dash_returns_one(self):
+        self.eval_set_path.write_text(
+            json.dumps([{"query": "--dangerous-flag", "should_trigger": True}]),
+            encoding="utf-8",
+        )
+        self.assertEqual(rte.main(self._argv()), 1)
+
+
+class LoadJsonRecordsQueryValidationTest(unittest.TestCase):
+    """`_load_json_records` rejects a `query` field that starts with '-'
+    before the eval set ever reaches subprocess dispatch, naming the
+    offending query in the raised `HarnessError`."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="trigeval-loadrecords-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+    def test_query_starting_with_dash_raises_harness_error_naming_query(self):
+        path = self.tmp / "eval-set.json"
+        path.write_text(
+            json.dumps([{"query": "--help", "should_trigger": True}]),
+            encoding="utf-8",
+        )
+        with self.assertRaises(rte.HarnessError) as ctx:
+            rte._load_json_records(path, "--eval-set", ("query", "should_trigger"), "query objects")
+        self.assertIn("--help", str(ctx.exception))
+
+    def test_ordinary_query_is_accepted(self):
+        path = self.tmp / "eval-set.json"
+        path.write_text(
+            json.dumps([{"query": "write the docs", "should_trigger": True}]),
+            encoding="utf-8",
+        )
+        records = rte._load_json_records(path, "--eval-set", ("query", "should_trigger"), "query objects")
+        self.assertEqual(records[0]["query"], "write the docs")
+
 
 # --------------------------------------------------------------------------
 # --max-cost abort behavior (Defect A)
@@ -716,6 +783,28 @@ class _FakeProc:
         return self.returncode
 
 
+class RedactSecretsTest(unittest.TestCase):
+    """`_redact_secrets` masks obvious credential shapes before a stderr
+    tail is embedded in a `HarnessError` message or written into a
+    results.json artifact, while leaving ordinary stderr text untouched."""
+
+    def test_masks_sk_prefixed_token(self):
+        text = "auth failed with token sk-abcdefghijklmnop1234 during request"
+        redacted = rte._redact_secrets(text)
+        self.assertNotIn("sk-abcdefghijklmnop1234", redacted)
+        self.assertIn("[REDACTED]", redacted)
+
+    def test_masks_anthropic_api_key_assignment(self):
+        text = "env dump: ANTHROPIC_API_KEY=sk-verysecretvalue1234 other=1"
+        redacted = rte._redact_secrets(text)
+        self.assertNotIn("sk-verysecretvalue1234", redacted)
+        self.assertIn("ANTHROPIC_API_KEY=[REDACTED]", redacted)
+
+    def test_leaves_ordinary_stderr_text_intact(self):
+        text = "Error: workspace directory not found" + chr(10) + "exit code 2"
+        self.assertEqual(rte._redact_secrets(text), text)
+
+
 class RunSingleQueryReturncodeTest(unittest.TestCase):
     """`run_single_query` must never score a nonzero subprocess exit as a
     clean non-trigger: the `claude` process may have died on an auth
@@ -788,6 +877,41 @@ class RunSingleQueryReturncodeTest(unittest.TestCase):
         self.assertEqual(len(tail_in_message), rte._STDERR_TAIL_CHARS)
         self.assertEqual(tail_in_message, huge_stderr[-rte._STDERR_TAIL_CHARS:])
         self.assertLess(len(message), len(huge_stderr))
+
+    def test_secret_straddling_tail_boundary_is_fully_redacted(self):
+        # A secret that straddles the `_STDERR_TAIL_CHARS` cut point is the
+        # security-review defect: slicing BEFORE redacting truncates the
+        # token before the redaction regex ever sees it, so the surviving
+        # suffix (missing its "sk-" prefix) matches no pattern and lands in
+        # the raised HarnessError -- and from there into results.json --
+        # unredacted. The fix redacts the full text first, then slices.
+        boundary = 10000 - rte._STDERR_TAIL_CHARS
+        secret_body = "UNIQSECRETSUFFIXABCDEFGHIJKLMNOPQRSTUV1234567890"
+        secret = "sk-" + secret_body
+        secret_start = boundary - 10  # secret begins 10 chars before the cut
+        prefix = "x" * secret_start
+        suffix = "y" * (10000 - secret_start - len(secret))
+        huge_stderr = prefix + secret + suffix
+        self.assertEqual(len(huge_stderr), 10000)
+        # The fragment that lands inside the tail slice once the leading
+        # "sk-" (and a few body chars) are cut away by a pre-redaction
+        # slice -- exactly what must never survive into the error message.
+        leaked_fragment = secret[boundary - secret_start :]
+        with mock.patch.object(
+            rte.subprocess,
+            "Popen",
+            return_value=_FakeProc(stdout_lines=[], stderr_text=huge_stderr, returncode=1),
+        ):
+            with self.assertRaises(rte.HarnessError) as ctx:
+                rte.run_single_query(
+                    skill_path=self.skill_path,
+                    description="A description.",
+                    workspace=self.workspace,
+                    query="do a thing",
+                )
+        message = str(ctx.exception)
+        self.assertNotIn(leaked_fragment, message)
+        self.assertNotIn(secret_body, message)
 
     def test_zero_exit_without_trigger_does_not_raise(self):
         # Ordinary negative case must keep working: a clean exit 0 with no

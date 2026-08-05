@@ -45,6 +45,7 @@ import argparse
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -63,12 +64,33 @@ DEFAULT_SEED = 42
 DEFAULT_NUM_WORKERS = 6
 DEFAULT_TIMEOUT_S = 180
 _STDERR_TAIL_CHARS = 4000
+_SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 RunDirs = namedtuple("RunDirs", ["parent", "workspace_dir"])
 
 
 class HarnessError(RuntimeError):
     """Raised for a harness failure (as opposed to a low score)."""
+
+
+_SECRET_PATTERNS = [
+    re.compile(r"sk-[A-Za-z0-9_-]{10,}"),
+    re.compile(r"(ANTHROPIC_API_KEY\s*=\s*)\S+"),
+]
+
+
+def _redact_secrets(text: str) -> str:
+    """Masks obvious credential shapes in `text` before it is embedded in an
+    error message or written to a results artifact.
+
+    Regex-based and deliberately narrow: `sk-`-prefixed tokens and
+    `ANTHROPIC_API_KEY=<value>` style assignments. Not exhaustive secret
+    detection -- just enough to keep an accidental credential echoed to
+    stderr out of a committable JSON artifact.
+    """
+    redacted = _SECRET_PATTERNS[0].sub("[REDACTED]", text)
+    redacted = _SECRET_PATTERNS[1].sub(r"\1[REDACTED]", redacted)
+    return redacted
 
 
 # --------------------------------------------------------------------------
@@ -164,6 +186,11 @@ def build_plugin_dir(skill_path: Path | str, description: str, dest: Path | str)
     skill_md_src = skill_path / "SKILL.md"
     skill_md_text = skill_md_src.read_text(encoding="utf-8")
     skill_name = _read_frontmatter_name(skill_md_text)
+    if not _SKILL_NAME_RE.match(skill_name):
+        raise HarnessError(
+            f"SKILL.md 'name' field {skill_name!r} is not a safe path component "
+            f"(must match {_SKILL_NAME_RE.pattern!r})"
+        )
 
     plugin_name = dest.name
     dest.mkdir(parents=True, exist_ok=True)
@@ -188,10 +215,16 @@ def build_plugin_dir(skill_path: Path | str, description: str, dest: Path | str)
     (manifest_dir / "plugin.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
     skill_dest = dest / "skills" / skill_name
+    resolved_dest = dest.resolve()
+    resolved_skill_dest = skill_dest.resolve()
+    if resolved_dest not in (resolved_skill_dest, *resolved_skill_dest.parents):
+        raise HarnessError(
+            f"skill destination {resolved_skill_dest} escapes the plugin directory {resolved_dest}"
+        )
     if skill_dest.exists():
         shutil.rmtree(skill_dest)
     skill_dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(skill_path, skill_dest)
+    shutil.copytree(skill_path, skill_dest, symlinks=True)
 
     new_text = substitute_description(skill_md_text, description)
     (skill_dest / "SKILL.md").write_text(new_text, encoding="utf-8")
@@ -489,7 +522,7 @@ def run_single_query(
 
         workspace = Path(workspace)
         if workspace.is_dir():
-            shutil.copytree(workspace, dirs.workspace_dir)
+            shutil.copytree(workspace, dirs.workspace_dir, symlinks=True)
         else:
             dirs.workspace_dir.mkdir(parents=True, exist_ok=True)
 
@@ -556,7 +589,7 @@ def run_single_query(
                     stderr_text = proc.stderr.read() or ""
                 except (OSError, ValueError):
                     stderr_text = ""
-            stderr_tail = stderr_text[-_STDERR_TAIL_CHARS:]
+            stderr_tail = _redact_secrets(stderr_text)[-_STDERR_TAIL_CHARS:]
             raise HarnessError(
                 f"claude subprocess exited {proc.returncode} without triggering a skill "
                 f"call (query={query!r}); stderr tail:\n{stderr_tail}"
@@ -606,6 +639,12 @@ def _load_json_records(path: Path, flag: str, required_keys: tuple[str, str], sh
     for item in data:
         if key_a not in item or key_b not in item:
             raise HarnessError(f"{flag} item missing '{key_a}' or '{key_b}': {item!r}")
+        query = item.get("query")
+        if isinstance(query, str) and query.startswith("-"):
+            raise HarnessError(
+                f"{flag} query must not start with '-' (would be parsed as a claude CLI "
+                f"flag rather than a prompt): {query!r}"
+            )
     return data
 
 
