@@ -17,8 +17,13 @@ skills:
     baseline_prompt: "Where does this document belong, and is its markdown clean? I don't have a documentation-routing tool, just tell me directly."
     fixture_root: scriptorium/evals/fixtures
     tools: "Read,Write,Bash"
+    workspace: scriptorium/evals/fixtures/trigger-workspace
+    trigger_eval_set: scriptorium/skills/docs/evals/trigger-evals.json
 
-# The runner itself (run_evals.py, pyproject.toml, uv.lock) is deliberate follow-up
-# work, out of scope for this change. When it lands, scriptorium-workspace/ (the
-# per-run scratch copy of a fixture tree) will need a .gitignore entry so the
-# runner's working copies never get committed.
+# The trigger harness has landed, at scripts/evals/run_trigger_evals.py (repo-level,
+# not plugin-scoped): it measures whether a candidate description makes the model
+# reach for the skill on its own, using the workspace and trigger_eval_set keys
+# above. The behavioral runner (run_evals.py, pyproject.toml, uv.lock) referenced
+# elsewhere in this file remains deliberate follow-up work and has not landed.
+# scriptorium-workspace/ (the per-run scratch copy of a fixture tree) is already
+# in .gitignore for when it does.

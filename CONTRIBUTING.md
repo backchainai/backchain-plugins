@@ -17,6 +17,7 @@ Before opening a PR:
 - [ ] New skills include an `evals/evals.json` with at least one structural assertion.
 - [ ] If you change a skill's behavior, run the relevant plugin eval harness (`uv run --project <plugin>/evals python <plugin>/evals/run_evals.py --skill <name>`) and include the delta in the PR description.
 - [ ] Trigger phrases in `description` frontmatter remain compatible with model-invocation routing.
+- [ ] If you change a skill's frontmatter `description`, rerun that skill's `evals/trigger-evals.json` (a labeled set of queries a user might type, each marked whether the skill should fire) with `python3 scripts/evals/run_trigger_evals.py --skill-path <plugin>/skills/<name> --eval-set <plugin>/skills/<name>/evals/trigger-evals.json --workspace <grounding-workspace> --candidates <candidates-file> --results-dir <results-dir>`, and include the before/after scores in the PR description. A trigger eval measures whether the model reaches for the skill unprompted, not how well the skill performs once invoked; that is a separate measurement from `evals/evals.json`. It calls the model and costs real money per run, so budget before a large candidate sweep; see `scripts/evals/README.md` for the cost table.
 - [ ] No Backchain-internal references (client names, private directory layouts, internal tool paths) added to public skill files.
 - [ ] If a skill needs a tool integration (issue tracker, ADR location, custom scan path), the SKILL.md prompts the user to confirm the choice rather than hard-coding a specific tool.
 

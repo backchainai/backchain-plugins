@@ -15,6 +15,8 @@ Thumbs.db
 advisors-workspace/
 engram-workspace/
 diogenes-workspace/
+scriptorium-workspace/
+trigger-evals-workspace/
 
 # Eval tooling
 advisors/evals/.venv/
@@ -23,7 +25,8 @@ engram/evals/.venv/
 engram/evals/.env
 diogenes/evals/.venv/
 diogenes/evals/.env
-diogenes/evals/__pycache__/
+__pycache__/
+*.py[cod]
 
 # Local git worktrees (not tracked)
 .worktrees/

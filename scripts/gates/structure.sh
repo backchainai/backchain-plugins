@@ -8,9 +8,10 @@
 #              description present, file <= 500 lines).
 #   Stage B -- every tracked *.json file is valid JSON.
 #   Stage C -- every tracked test_*.py suite under a skills/*/scripts/
-#              directory (any plugin, not just scriptorium) is discovered
-#              and run via `python3 -m unittest`; an untracked match is
-#              reported and refused.
+#              directory (any plugin, not just scriptorium) or directly
+#              under a top-level scripts/*/ tooling directory (e.g.
+#              scripts/evals/) is discovered and run via `python3 -m
+#              unittest`; an untracked match is reported and refused.
 #   Stage D -- every tracked scripts/gates/test_*.sh self-test is run,
 #              recursion-guarded by GATE_SELFTEST (see below); an untracked
 #              match is reported and refused.
@@ -123,9 +124,11 @@ done < <(git ls-files --cached --others --exclude-standard '*.json')
 # globs are not path-separator-aware, so this glob also matches a tracked
 # .py file nested under a scripts/test_*/ subtree (e.g.
 # plug/skills/demo/scripts/test_sub/helper.py), not only a test_*.py file
-# directly in scripts/.
-py_tracked=$(git ls-files --cached '*/skills/*/scripts/test_*.py')
-py_untracked=$(git ls-files --others --exclude-standard '*/skills/*/scripts/test_*.py')
+# directly in scripts/. The second glob, scripts/*/test_*.py, collects
+# repo-level tooling suites (e.g. scripts/evals/test_run_trigger_evals.py)
+# that sit beside scripts/gates/ rather than under any one plugin's skill.
+py_tracked=$(git ls-files --cached '*/skills/*/scripts/test_*.py' 'scripts/*/test_*.py')
+py_untracked=$(git ls-files --others --exclude-standard '*/skills/*/scripts/test_*.py' 'scripts/*/test_*.py')
 
 refuse_untracked "python suite" "$py_untracked"
 

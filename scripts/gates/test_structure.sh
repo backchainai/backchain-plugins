@@ -906,6 +906,45 @@ case_tracked_selftest_runs() {
   return 1
 }
 
+case_scripts_suite_collected() {
+  # Verification item 4 (anti-vacuity): pins the second Stage C pathspec,
+  # scripts/*/test_*.py, added alongside */skills/*/scripts/test_*.py so
+  # repo-level tooling suites (e.g. scripts/evals/test_run_trigger_evals.py)
+  # are discovered too. A tracked scripts/evals/test_thing.py that FAILS
+  # must make the gate go red naming that exact path -- without this case,
+  # a later edit could drop the second pathspec silently, since no other
+  # case in this suite touches anything outside skills/*/scripts/.
+  local name="scripts-suite-collected (tracked scripts/*/test_*.py is discovered and run)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  mkdir -p "$tmp/scripts/evals"
+  cat >"$tmp/scripts/evals/test_thing.py" <<'EOF'
+#!/usr/bin/env python3
+import unittest
+
+
+class ThingTest(unittest.TestCase):
+    def test_thing(self):
+        self.assertEqual(1, 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
+EOF
+  git -C "$tmp" add -A
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "FAIL  python suite: scripts/evals/test_thing.py"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 naming scripts/evals/test_thing.py)"
+  printf '%s\n' "$out"
+  return 1
+}
+
 case_untracked_selftest_refused() {
   # Acceptance criterion 2: an untracked scripts/gates/test_*.sh self-test
   # must be refused, not executed. Same fixture as the control above, left
@@ -958,6 +997,7 @@ case_red_marketplace_plugins_string || overall=1
 case_no_marketplace || overall=1
 case_tracked_selftest_runs || overall=1
 case_untracked_selftest_refused || overall=1
+case_scripts_suite_collected || overall=1
 
 if [ "$overall" -eq 0 ]; then
   echo "ok  all gate self-test cases passed"

@@ -53,7 +53,7 @@
   },
   {
     "query": "Our README is a mess: it buries the install instructions under a wall of badges and a long project history nobody reads anymore. Can you help me trim it down and reorder it?",
-    "should_trigger": false
+    "should_trigger": true
   },
   {
     "query": "How do I make a table in markdown where one of the cells needs to span two lines? I keep getting the formatting wrong.",
