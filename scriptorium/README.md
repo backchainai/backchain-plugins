@@ -31,7 +31,7 @@ Diataxis governs product documentation written for users. It does not govern:
 
 ## Status
 
-The `docs` skill routes a document to its Diataxis mode, writes it under that mode's constraints, names the file and its frontmatter per `references/frontmatter.md`, runs an ordered self-check before emitting, and escalates rather than guessing when a required value is unknown. It also carries a CommonMark authoring reference and the `check_markdown.py` linter for checking markdown form, plus an eval suite covering routing, markdown linting, contamination, scaffolding, out-of-scope requests, and frontmatter emission. Issue [#21](https://github.com/backchainai/backchain-plugins/issues/21), tightening the skill's own `description` frontmatter, is the one item still open under epic [#15](https://github.com/backchainai/backchain-plugins/issues/15).
+The `docs` skill routes a document to its Diataxis mode, writes it under that mode's constraints, names the file and its frontmatter per `references/frontmatter.md`, runs an ordered self-check before emitting, and escalates rather than guessing when a required value is unknown. It also carries a CommonMark authoring reference and the `check_markdown.py` linter for checking markdown form, plus an eval suite covering routing, markdown linting, contamination, scaffolding, out-of-scope requests, and frontmatter emission. Issue [#21](https://github.com/backchainai/backchain-plugins/issues/21), tightening the skill's own `description` frontmatter, is the one item still open under epic [#15](https://github.com/backchainai/backchain-plugins/issues/15). The instrument that measures it now exists at `scripts/evals/run_trigger_evals.py`; the scored comparison it enables has not been run.
 
 ## License and contributing
 
