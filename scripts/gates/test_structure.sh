@@ -5,10 +5,13 @@
 # gate against it, and checks the gate's exit code and output. bash + git +
 # stdlib python3 only, no third-party dependencies.
 #
-# Every invocation of the gate made by this harness exports GATE_SELFTEST=1
-# so the gate never re-enters its own self-test stage (Stage D is skipped
-# whenever GATE_SELFTEST is non-empty) -- otherwise this script would recurse
-# into itself via the gate it is testing.
+# This harness's own top-level invocation need not itself be guarded against
+# recursion: the guard is depth-independent because Stage D re-exports
+# GATE_SELFTEST=1 to whatever self-test it invokes (the gate header's
+# `Recursion guard:` paragraph), and build_fixture (below) never copies this
+# harness into a fixture, so the gate under test can never reach back into
+# test_structure.sh. run_gate_stage_d exploits that: it is the one runner
+# that clears GATE_SELFTEST, deliberately letting Stage D execute.
 #
 # python3 is a hard requirement of this harness (several cases exercise
 # Stage C, the python-suite stage). Rather than skip individual cases when
@@ -47,10 +50,10 @@ overall=0
 #   README.md                        -- lists "demo-plugin", so the fixture is
 #                                        green for Stage E out of the box
 #
-# build_fixture and run_gate (below) deliberately do not declare their own
+# build_fixture and _run_gate (below) deliberately do not declare their own
 # `local tmp`/`out`/`rc`/`assertion`. Every case function below declares
 # those names `local` itself; because bash resolves unqualified assignments
-# dynamically up the call stack, an assignment inside build_fixture/run_gate
+# dynamically up the call stack, an assignment inside build_fixture/_run_gate
 # lands in the nearest enclosing `local` of the same name -- i.e. the calling
 # case's own variable -- rather than a shared global. That gives each case
 # an isolated tmp/out/rc without having to thread return values through
@@ -129,19 +132,52 @@ EOF
   git -C "$tmp" add -A
 }
 
-# run_gate <tmp> -> writes combined output to $out, exit code to $rc
-# Verifies the fixture actually has a .git directory before running the gate
-# so a build_fixture failure (e.g. `git init` failing) surfaces as a harness
-# failure instead of being interpreted as the gate having gone red.
-run_gate() {
+# _run_gate <tmp> <GATE_SELFTEST value> -> writes combined output to $out,
+# exit code to $rc. Verifies the fixture actually has a .git directory before
+# running the gate so a build_fixture failure (e.g. `git init` failing)
+# surfaces as a harness failure instead of being interpreted as the gate
+# having gone red.
+_run_gate() {
   tmp="$1"
+  local selftest="$2"
   if [ ! -d "$tmp/.git" ]; then
     out="fixture at $tmp has no .git directory (build_fixture likely failed)"
     rc=1
     return
   fi
-  out=$(cd "$tmp" && GATE_SELFTEST=1 bash scripts/gates/structure.sh 2>&1)
+  out=$(cd "$tmp" && GATE_SELFTEST="$selftest" bash scripts/gates/structure.sh 2>&1)
   rc=$?
+}
+
+# run_gate <tmp> -- runs the gate with GATE_SELFTEST=1, so Stage D is skipped
+# by the recursion guard. This is the runner every case uses except the pair
+# below that exercises Stage D directly.
+run_gate() { _run_gate "$1" 1; }
+
+# run_gate_stage_d <tmp> -- like run_gate, but clears GATE_SELFTEST so Stage
+# D actually executes instead of being skipped by the recursion guard.
+# GATE_SELFTEST= (not just omitted) clears any value this harness itself
+# inherited -- e.g. when structure.sh's own Stage D invokes this harness
+# with GATE_SELFTEST=1, that value is exported into this process's
+# environment and would otherwise leak into every subshell here, silently
+# skipping the Stage D behavior this runner exists to exercise.
+#
+# Invariant, mechanically enforced by the guard below: build_fixture copies
+# only structure.sh into the fixture's scripts/gates/, never this harness
+# (test_structure.sh) -- and Stage D exports GATE_SELFTEST=1 for every
+# self-test it invokes (the gate header's `Recursion guard:` paragraph), so
+# the recursion guard is depth-independent rather than relying on this
+# top-level invocation being guarded too. A fixture that ever copied this
+# harness into scripts/gates/ would let a cleared GATE_SELFTEST recurse into
+# it without bound; the guard below fails loudly instead of letting that
+# happen, mirroring _run_gate's own build-fixture-failure guard above.
+run_gate_stage_d() {
+  if [ -f "$1/scripts/gates/test_structure.sh" ]; then
+    out="fixture at $1 contains scripts/gates/test_structure.sh; run_gate_stage_d refuses to clear GATE_SELFTEST here, since Stage D would then recurse into this harness without bound"
+    rc=1
+    return
+  fi
+  _run_gate "$1" ""
 }
 
 # write_marketplace <tmp> -- reads manifest JSON on stdin, overwrites the
@@ -149,6 +185,27 @@ run_gate() {
 write_marketplace() {
   cat >"$1/.claude-plugin/marketplace.json"
   git -C "$1" add -A
+}
+
+# write_selftest_fixture <tmp> -- writes an executable
+# scripts/gates/test_fixture.sh into the fixture that touches the path in
+# the GATE_SELFTEST_SENTINEL environment variable and exits 0. Quoted
+# heredoc (<<'EOF'), not a bare one: $tmp comes from `mktemp -d
+# "${TMPDIR:-/tmp}/gate-selftest.XXXXXX"`, so a hostile TMPDIR (a double
+# quote, a backtick, a $(...)) must not get to interpolate into the
+# generated script's content at write time. The sentinel path is read from
+# the environment at RUN time instead; each call site exports
+# GATE_SELFTEST_SENTINEL immediately before invoking the fixture. Shared by
+# the tracked-runs/untracked-refused control pair below, whose validity
+# depends on the two fixtures being identical. Staging is left to the call
+# site, since that is the one line that distinguishes the two cases.
+write_selftest_fixture() {
+  cat >"$1/scripts/gates/test_fixture.sh" <<'EOF'
+#!/usr/bin/env bash
+touch "$GATE_SELFTEST_SENTINEL"
+exit 0
+EOF
+  chmod +x "$1/scripts/gates/test_fixture.sh"
 }
 
 case_green() {
@@ -182,39 +239,125 @@ case_green() {
   return 1
 }
 
-case_red_python() {
-  local name="red-on-python (failing python suite, discovered via --others/untracked)"
+case_red_python_tracked() {
+  # Retargeted from the old case_red_python, which proved untracked
+  # discovery works -- the behavior this issue removes. This case now pins
+  # the tracked-execution path: build_fixture "$tmp" fail stages a failing
+  # suite via `git add -A`, so Stage C must still find and run it via
+  # `git ls-files --cached`.
+  local name="red-on-python (failing tracked python suite)"
   local tmp out rc
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
   trap 'rm -rf "$tmp"' RETURN
-  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
-  # ADVISORY 8: exercise the --others (untracked) discovery path. Remove the
-  # tracked passing suite and stage that removal, then drop a failing suite
-  # into the working tree WITHOUT staging it. Stage C must find it via
-  # `git ls-files --others --exclude-standard`; dropping --others from the
-  # gate's glob would make this suite invisible and this case would go
-  # green.
-  rm -f "$tmp/plug/skills/demo/scripts/test_demo.py"
-  git -C "$tmp" add -A >/dev/null 2>&1
-  cat >"$tmp/plug/skills/demo/scripts/test_demo.py" <<'EOF'
-#!/usr/bin/env python3
-import unittest
-
-
-class DemoTest(unittest.TestCase):
-    def test_demo(self):
-        self.assertEqual(1, 2)
-
-
-if __name__ == "__main__":
-    unittest.main()
-EOF
+  build_fixture "$tmp" fail >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
   run_gate "$tmp"
   if [ "$rc" -eq 1 ] && printf '%s' "$out" | grep -q "FAIL  python suite: plug/skills/demo/scripts/test_demo.py"; then
     echo "ok  $name"
     return 0
   fi
   echo "FAIL  $name (exit=$rc, expected 1)"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_untracked_python_refused() {
+  # Acceptance criterion 4: an untracked python suite must be refused, not
+  # executed. Remove the tracked suite and stage the removal, then write an
+  # UNSTAGED test_demo.py whose first module-level statement writes a
+  # sentinel file, so any execution at all -- including a bare import --
+  # leaves evidence. The sentinel is the load-bearing assertion: absence of
+  # output could be explained by a swallowed stream, absence of the sentinel
+  # cannot. It also makes a future re-widening of the glob back to
+  # --cached --others fail this case mechanically.
+  #
+  # Quoted heredoc (<<'EOF'), not a bare one: $sentinel derives from $tmp,
+  # which comes from `mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX"`, so a
+  # hostile TMPDIR must not get to interpolate into the generated python
+  # source at write time. The sentinel path is read from the
+  # PYTHON_SENTINEL_PATH environment variable at RUN time instead, exported
+  # immediately before invoking the fixture -- writing the sentinel stays
+  # the first module-level action before `import unittest`, which is the
+  # load-bearing ordering property this case pins.
+  local name="untracked-python-refused (unstaged python suite is refused, not executed)"
+  local tmp out rc sentinel
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  rm -f "$tmp/plug/skills/demo/scripts/test_demo.py"
+  git -C "$tmp" add -A >/dev/null 2>&1
+  sentinel="$tmp/sentinel_untracked_python_ran"
+  cat >"$tmp/plug/skills/demo/scripts/test_demo.py" <<'EOF'
+#!/usr/bin/env python3
+import os
+import pathlib
+pathlib.Path(os.environ["PYTHON_SENTINEL_PATH"]).write_text("ran")
+import unittest
+
+
+class DemoTest(unittest.TestCase):
+    def test_demo(self):
+        self.assertEqual(1, 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
+EOF
+  export PYTHON_SENTINEL_PATH="$sentinel"
+  run_gate "$tmp"
+  # The refusal text and the file path are asserted as a single anchored grep
+  # (not two independent greps) so a gate that emits the refusal for one file
+  # and the target path on an unrelated line cannot pass. The NOTE-suppression
+  # check pins the other half of the Stage C change: "no python test suites
+  # found" fires only when both the tracked and untracked lists are empty, so
+  # reverting that condition to `[ -z "$py_tracked" ]` would print the NOTE
+  # alongside the refusal (py_tracked is empty here, only py_untracked has an
+  # entry) even though a suite plainly exists -- this assertion catches that.
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "untracked python suite, refusing to execute.*plug/skills/demo/scripts/test_demo.py" \
+    && [ ! -f "$sentinel" ] \
+    && ! printf '%s' "$out" | grep -qE 'Ran [0-9]+ test' \
+    && ! printf '%s' "$out" | grep -q "no python test suites found"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with anchored refusal diagnostic, sentinel absent, no 'Ran N test' line, no NOTE suppression)"
+  printf '%s\n' "$out"
+  [ -f "$sentinel" ] && echo "FAIL  $name: sentinel file exists, suite was executed despite refusal: $sentinel"
+  return 1
+}
+
+case_untracked_skill_still_discovered() {
+  # Acceptance criterion 3: Stages A and B must keep discovering untracked
+  # files via `git ls-files --cached --others --exclude-standard` (unlike
+  # Stage C/D, which narrow to tracked-only execution). Drops an UNSTAGED
+  # SKILL.md with a mismatched frontmatter name into the fixture and asserts
+  # Stage A still catches it. Narrowing Stage A's discovery glob to --cached
+  # would leave plug/skills/demo2/SKILL.md invisible (it is never staged)
+  # and the gate would wrongly report ok.
+  local name="untracked-skill-still-discovered (unstaged mismatched SKILL.md still caught by Stage A)"
+  local tmp out rc
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  mkdir -p "$tmp/plug/skills/demo2"
+  cat >"$tmp/plug/skills/demo2/SKILL.md" <<'EOF'
+---
+name: not-demo2
+description: An unstaged skill fixture proving Stage A still discovers untracked SKILL.md files.
+---
+
+# demo2
+
+Fixture content.
+EOF
+  # Deliberately left unstaged.
+  run_gate "$tmp"
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "frontmatter name 'not-demo2' does not match directory 'demo2'"; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with frontmatter mismatch naming demo2)"
   printf '%s\n' "$out"
   return 1
 }
@@ -738,8 +881,63 @@ case_no_marketplace() {
   return 1
 }
 
+case_tracked_selftest_runs() {
+  # Control for case_untracked_selftest_refused below, and Stage D's first
+  # direct coverage: every other case runs the gate with GATE_SELFTEST=1,
+  # which skips Stage D entirely, so no other case can reach it. Without
+  # this control, the refusal case below would pass even if Stage D were
+  # broken outright.
+  local name="tracked-selftest-runs (tracked scripts/gates/test_*.sh self-test executes)"
+  local tmp out rc sentinel
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  sentinel="$tmp/sentinel_tracked_selftest_ran"
+  write_selftest_fixture "$tmp"
+  git -C "$tmp" add -A >/dev/null 2>&1
+  export GATE_SELFTEST_SENTINEL="$sentinel"
+  run_gate_stage_d "$tmp"
+  if [ "$rc" -eq 0 ] && [ -f "$sentinel" ]; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 0 with sentinel present)"
+  printf '%s\n' "$out"
+  return 1
+}
+
+case_untracked_selftest_refused() {
+  # Acceptance criterion 2: an untracked scripts/gates/test_*.sh self-test
+  # must be refused, not executed. Same fixture as the control above, left
+  # unstaged.
+  local name="untracked-selftest-refused (unstaged gate self-test is refused, not executed)"
+  local tmp out rc sentinel
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-selftest.XXXXXX")
+  trap 'rm -rf "$tmp"' RETURN
+  build_fixture "$tmp" pass >/dev/null 2>&1 || { echo "FAIL  $name (fixture build failed)"; return 1; }
+  sentinel="$tmp/sentinel_untracked_selftest_ran"
+  write_selftest_fixture "$tmp"
+  # Deliberately left unstaged.
+  export GATE_SELFTEST_SENTINEL="$sentinel"
+  run_gate_stage_d "$tmp"
+  # Anchored grep (not two independent greps) so a gate emitting the refusal
+  # for one file and the target path on an unrelated line cannot pass.
+  if [ "$rc" -eq 1 ] \
+    && printf '%s' "$out" | grep -q "untracked gate self-test, refusing to execute.*scripts/gates/test_fixture.sh" \
+    && [ ! -f "$sentinel" ]; then
+    echo "ok  $name"
+    return 0
+  fi
+  echo "FAIL  $name (exit=$rc, expected 1 with refusal diagnostic and sentinel absent)"
+  printf '%s\n' "$out"
+  [ -f "$sentinel" ] && echo "FAIL  $name: sentinel file exists, self-test was executed despite refusal: $sentinel"
+  return 1
+}
+
 case_green || overall=1
-case_red_python || overall=1
+case_red_python_tracked || overall=1
+case_untracked_python_refused || overall=1
+case_untracked_skill_still_discovered || overall=1
 case_red_skill || overall=1
 case_red_json || overall=1
 case_no_suites || overall=1
@@ -758,6 +956,8 @@ case_red_marketplace_entry_dropped || overall=1
 case_red_marketplace_plugins_object || overall=1
 case_red_marketplace_plugins_string || overall=1
 case_no_marketplace || overall=1
+case_tracked_selftest_runs || overall=1
+case_untracked_selftest_refused || overall=1
 
 if [ "$overall" -eq 0 ]; then
   echo "ok  all gate self-test cases passed"
