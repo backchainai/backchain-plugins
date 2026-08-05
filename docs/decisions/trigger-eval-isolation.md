@@ -1,7 +1,7 @@
 ---
 title: Trigger Eval Isolation
 prepared_by: Claude (Sonnet 5)
-updated: 2026-08-05T08:17:10-04:00
+updated: 2026-08-05T08:37:07-04:00
 purpose: Record the three compounding defects that held the skill-creator trigger harness at a 0% floor and the isolation design the replacement harness uses instead.
 tags: []
 aliases: []
@@ -101,6 +101,21 @@ throwaway plugin `trigeval-<uuid>`, so the id is unique per run, which
 restores the disambiguation the old harness got from UUID skill names and
 keeps the measurement correct if a second real `docs` skill is ever present
 in the session.
+
+## Cost
+
+The design (kill-on-detection, `--tools "Read,Grep,Glob,Bash,Skill"` with
+no Write or Edit) was projected from two probes at $0.249 for a declined
+run and $0.486 for a triggered one, roughly $0.35 per query blended. A real
+run did not hold to that projection: a two-query smoke check cost $0.40,
+and a `--max-cost 10` pair run, aborted mid-flight by a separate defect in
+the abort path (see `scripts/evals/README.md`, "Cost"), spent $16.06
+without finishing one candidate's 20-query set. Negatives run the full task
+and cost more than positives, which get killed on detection, so a
+negative-heavy query mix costs more than the blended projection assumed.
+Roughly $0.80 per query is the current working figure, measured rather than
+projected, and it should be re-measured with a fresh smoke check before
+being trusted for a new query set or skill.
 
 ## Consequences
 

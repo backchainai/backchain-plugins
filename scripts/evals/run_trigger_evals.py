@@ -637,12 +637,30 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     args.results_dir.mkdir(parents=True, exist_ok=True)
+    results_path = args.results_dir / "results.json"
 
     total_cost = 0.0
     partial = False
     all_results: dict[str, dict] = {}
 
-    from concurrent.futures import ThreadPoolExecutor, as_completed
+    def _write_results() -> None:
+        # Called after every completed dispatch (not just at the end) so
+        # that a kill -9 mid-run still leaves an accurate, on-disk
+        # `results.json` behind -- the observed live-money incident produced
+        # zero artifact for a $16.06 run because the only write happened
+        # after the collection loop, which the process never reached.
+        output = {
+            "model": args.model,
+            "auth_mode": auth_mode,
+            "total_cost_usd": total_cost,
+            "partial": partial,
+            "candidates": all_results,
+        }
+        results_path.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
+
+    from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+
+    num_workers = max(1, args.num_workers)
 
     for candidate in candidates:
         name = candidate["name"]
@@ -657,12 +675,24 @@ def main(argv: list[str] | None = None) -> int:
                     tasks.append((split_name, item))
 
         per_query_counts: dict[tuple[str, str], dict] = {}
+        all_results[name] = {"description": description, "results": []}
 
-        with ThreadPoolExecutor(max_workers=max(1, args.num_workers)) as pool:
-            futures = {}
-            for split_name, item in tasks:
-                if budget_exceeded:
-                    break
+        # Bounded in-flight window: at most `num_workers` dispatches are
+        # ever outstanding at once, fed incrementally as each completes.
+        # Submitting every task up front (the old behavior) put the whole
+        # candidate's query set in the pool before the first cost check
+        # ever ran, so `--max-cost` had nothing left to abort -- every
+        # dispatch was already committed. Feeding the window lets the
+        # per-completion budget check actually stop future submissions.
+        with ThreadPoolExecutor(max_workers=num_workers) as pool:
+            task_iter = iter(tasks)
+            pending: dict[Any, tuple[str, dict]] = {}
+
+            def _submit_next() -> bool:
+                try:
+                    split_name, item = next(task_iter)
+                except StopIteration:
+                    return False
                 future = pool.submit(
                     run_single_query,
                     skill_path=args.skill_path,
@@ -673,46 +703,75 @@ def main(argv: list[str] | None = None) -> int:
                     tools=args.tools,
                     timeout=args.timeout,
                 )
-                futures[future] = (split_name, item)
+                pending[future] = (split_name, item)
+                return True
 
-            for future in as_completed(futures):
-                split_name, item = futures[future]
-                try:
-                    result = future.result()
-                except Exception as exc:  # noqa: BLE001 -- surfaced as a per-run failure, not a crash
-                    print(f"ERROR  run failed for {name!r} / {item['query']!r}: {exc}", file=sys.stderr)
-                    result = {"triggered": False, "cost_usd": 0.0, "query": item["query"]}
+            for _ in range(num_workers):
+                if not _submit_next():
+                    break
 
-                total_cost += result.get("cost_usd", 0.0) or 0.0
-                key = (split_name, item["query"])
-                bucket = per_query_counts.setdefault(
-                    key,
-                    {
-                        "query": item["query"],
-                        "should_trigger": item["should_trigger"],
-                        "split": split_name,
-                        "triggered_runs": 0,
-                        "total_runs": 0,
-                    },
-                )
-                bucket["total_runs"] += 1
-                if result.get("triggered"):
-                    bucket["triggered_runs"] += 1
+            while pending:
+                done, _ = wait(list(pending.keys()), return_when=FIRST_COMPLETED)
+                for future in done:
+                    split_name, item = pending.pop(future)
+                    try:
+                        result = future.result()
+                    except Exception as exc:  # noqa: BLE001 -- surfaced as a per-run failure, not a crash
+                        print(f"ERROR  run failed for {name!r} / {item['query']!r}: {exc}", file=sys.stderr)
+                        result = {"triggered": False, "cost_usd": 0.0, "query": item["query"]}
 
-                if args.max_cost is not None and total_cost > args.max_cost:
-                    budget_exceeded = True
-                    partial = True
-                    print(
-                        f"ERROR  --max-cost ${args.max_cost:.2f} exceeded (total ${total_cost:.2f}); "
-                        "aborting remaining dispatches for this candidate",
-                        file=sys.stderr,
+                    total_cost += result.get("cost_usd", 0.0) or 0.0
+                    key = (split_name, item["query"])
+                    bucket = per_query_counts.setdefault(
+                        key,
+                        {
+                            "query": item["query"],
+                            "should_trigger": item["should_trigger"],
+                            "split": split_name,
+                            "triggered_runs": 0,
+                            "total_runs": 0,
+                        },
                     )
+                    bucket["total_runs"] += 1
+                    if result.get("triggered"):
+                        bucket["triggered_runs"] += 1
+
+                    all_results[name]["results"] = list(per_query_counts.values())
+                    _write_results()
+
+                    if not budget_exceeded and args.max_cost is not None and total_cost > args.max_cost:
+                        budget_exceeded = True
+                        partial = True
+                        cancelled = 0
+                        for f in list(pending):
+                            if f.cancel():
+                                cancelled += 1
+                                del pending[f]
+                        still_running = len(pending)
+                        if still_running:
+                            print(
+                                f"ERROR  --max-cost ${args.max_cost:.2f} exceeded (total ${total_cost:.2f}) "
+                                f"during candidate {name!r}: cancelled {cancelled} not-yet-started "
+                                f"dispatch(es); {still_running} already-running dispatch(es) will still "
+                                "complete and their cost is still counted",
+                                file=sys.stderr,
+                            )
+                        else:
+                            print(
+                                f"ERROR  --max-cost ${args.max_cost:.2f} exceeded (total ${total_cost:.2f}) "
+                                f"during candidate {name!r}: cancelled {cancelled} not-yet-started "
+                                "dispatch(es); no dispatches were still running",
+                                file=sys.stderr,
+                            )
+                        _write_results()
+
+                if not budget_exceeded:
+                    while len(pending) < num_workers:
+                        if not _submit_next():
+                            break
 
         candidate_results = list(per_query_counts.values())
-        all_results[name] = {
-            "description": description,
-            "results": candidate_results,
-        }
+        all_results[name]["results"] = candidate_results
 
         for split_name in ("train", "test"):
             split_results = [r for r in candidate_results if r["split"] == split_name]
@@ -723,17 +782,12 @@ def main(argv: list[str] | None = None) -> int:
             print(_render_markdown_table(name, split_name, scored))
             print()
 
+        _write_results()
+
         if budget_exceeded:
             break
 
-    output = {
-        "model": args.model,
-        "auth_mode": auth_mode,
-        "total_cost_usd": total_cost,
-        "partial": partial,
-        "candidates": all_results,
-    }
-    (args.results_dir / "results.json").write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
+    _write_results()
 
     print(f"total cost: ${total_cost:.2f} (auth: {auth_mode})", file=sys.stderr)
     if partial:

@@ -103,9 +103,17 @@ not track real spend under subscription OAuth.
 Kill-on-detection and `--tools "Read,Grep,Glob,Bash,Skill"` (no Write or
 Edit) bound the cost of a run: the first stops the moment the answer is
 known, the second stops any run from completing the expensive write half of
-a task. Measured probe cost for one query was $0.249 for a run that
-declined early and $0.486 for one that triggered and ran to completion; an
-unmodified harness would run near $0.35 per query blended. These are
-projections from two probes, not a guarantee, so run a smoke check (one
-known positive, one known negative) before a full sweep and read its actual
-per-query cost before committing to `--max-cost` for the rest of the run.
+a task. Two probes put the per-query cost at $0.249 for a run that declined
+early and $0.486 for one that triggered and ran to completion, projecting to
+roughly $0.35 per query blended -- but a real, larger run did not hold to
+that projection.
+
+**Measured, not projected:** a two-query smoke check cost $0.40, and a
+`--max-cost 10` pair run that was killed mid-flight spent $16.06 without
+finishing even one candidate's 20-query set. Positives are cheap (killed on
+detection); negatives run the full task and are expensive, so a query mix
+skewed toward negatives costs more than the blended estimate above assumes.
+Treat roughly $0.80 per query as the working number until a fresh smoke
+check says otherwise, run a smoke check (one known positive, one known
+negative) before any full sweep, and read its actual per-query cost before
+committing to `--max-cost` for the rest of the run.

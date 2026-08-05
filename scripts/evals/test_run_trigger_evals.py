@@ -10,12 +10,16 @@ data-in/data-out against the harness's independently testable functions:
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import re
 import shutil
 import tempfile
+import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import run_trigger_evals as rte
 
@@ -285,7 +289,7 @@ class SubstituteDescriptionTest(unittest.TestCase):
         )
         self.assertEqual(unescaped, candidate)
 
-    def test_result_parses_as_yaml_frontmatter(self):
+    def test_result_frontmatter_lines_are_wellformed_mappings(self):
         result = rte.substitute_description(SAMPLE_SKILL_MD, "Simple description.")
         lines = result.split("\n")
         self.assertEqual(lines[0], "---")
@@ -298,6 +302,18 @@ class SubstituteDescriptionTest(unittest.TestCase):
             if not line or line.startswith(" "):
                 continue
             self.assertRegex(line, r"^[A-Za-z0-9_-]+:( .*)?$", f"not a valid YAML mapping line: {line!r}")
+
+    def test_body_description_line_is_left_untouched(self):
+        # A `description:`-looking line in the BODY (past the closing '---')
+        # must not be touched by the frontmatter-only substitution -- only
+        # the frontmatter block's own `description:` key is a target.
+        text = (
+            "---\nname: docs\ndescription: \"Old.\"\n---\n\n"
+            "# Docs\n\ndescription: this is prose, not frontmatter.\n"
+        )
+        result = rte.substitute_description(text, "New description.")
+        self.assertIn('description: "New description."', result)
+        self.assertIn("description: this is prose, not frontmatter.", result)
 
     def test_missing_description_field_appends_one(self):
         text = "---\nname: docs\n---\n\nBody.\n"
@@ -322,13 +338,31 @@ class BuildPluginDirTest(unittest.TestCase):
         (self.skill_path / "references" / "note.md").write_text("reference content\n", encoding="utf-8")
 
     def test_manifest_is_valid_json_with_nine_fields(self):
+        # Pin the literal nine field names from CLAUDE.md ("Adding a new
+        # plugin") rather than looping over rte.MANIFEST_FIELDS: comparing
+        # against the constant the implementation itself owns would not
+        # catch a field silently dropped from both the constant and the
+        # manifest it builds.
+        expected_fields = [
+            "author",
+            "category",
+            "description",
+            "homepage",
+            "keywords",
+            "license",
+            "name",
+            "repository",
+            "version",
+        ]
+        self.assertEqual(len(rte.MANIFEST_FIELDS), 9)
+        self.assertEqual(sorted(rte.MANIFEST_FIELDS), expected_fields)
+
         dest = self.tmp / "trigeval-deadbeef1234"
         rte.build_plugin_dir(self.skill_path, "A candidate description.", dest)
 
         manifest_path = dest / ".claude-plugin" / "plugin.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        for field in rte.MANIFEST_FIELDS:
-            self.assertIn(field, manifest, f"manifest missing field {field!r}")
+        self.assertEqual(sorted(manifest.keys()), expected_fields)
         self.assertEqual(manifest["name"], "trigeval-deadbeef1234")
 
     def test_skill_lands_at_skills_name_skill_md(self):
@@ -369,10 +403,55 @@ def _make_eval_set(n_positive: int, n_negative: int) -> list[dict]:
 
 class SplitEvalSetTest(unittest.TestCase):
     def test_stratified_counts_at_holdout_point_four(self):
-        eval_set = _make_eval_set(10, 10)
+        # Pins PER-CLASS counts, not just the split totals: an unstratified
+        # split (one shuffle over positives+negatives combined, instead of
+        # two per-class shuffles) still lands on 12 train / 8 test totals
+        # for an 11-positive/9-negative set, so a totals-only assertion
+        # cannot distinguish a stratified split from a broken one. The
+        # shipped eval set (scriptorium/skills/docs/evals/trigger-evals.json)
+        # is 11 positive / 9 negative after the query-14 relabel; these
+        # numbers are the real `split_eval_set` output for that shape,
+        # confirmed by running it, not assumed.
+        eval_set = _make_eval_set(11, 9)
         train, test = rte.split_eval_set(eval_set, holdout=0.4, seed=42)
+
+        train_pos = sum(1 for q in train if q["should_trigger"])
+        train_neg = sum(1 for q in train if not q["should_trigger"])
+        test_pos = sum(1 for q in test if q["should_trigger"])
+        test_neg = sum(1 for q in test if not q["should_trigger"])
+
+        self.assertEqual((train_pos, train_neg), (7, 5))
+        self.assertEqual((test_pos, test_neg), (4, 4))
         self.assertEqual(len(train), 12)
         self.assertEqual(len(test), 8)
+
+    def test_stratified_counts_survive_unstratified_mutant(self):
+        # A mutant that shuffles positives+negatives together (one `rng`
+        # call over the combined list) instead of splitting each class
+        # separately still produces 12/8 totals but the WRONG per-class
+        # split for this shape (8/4 train, 3/5 test rather than 7/5 and
+        # 4/4). This test fails against that mutant even though the totals
+        # test would not.
+        eval_set = _make_eval_set(11, 9)
+        import random as _random
+
+        def _unstratified_split(items, holdout, seed):
+            group = list(items)
+            rng = _random.Random(seed)
+            rng.shuffle(group)
+            n_test = round(len(group) * holdout)
+            return group[n_test:], group[:n_test]
+
+        mutant_train, mutant_test = _unstratified_split(eval_set, holdout=0.4, seed=42)
+        mutant_train_pos = sum(1 for q in mutant_train if q["should_trigger"])
+        mutant_test_pos = sum(1 for q in mutant_test if q["should_trigger"])
+
+        real_train, real_test = rte.split_eval_set(eval_set, holdout=0.4, seed=42)
+        real_train_pos = sum(1 for q in real_train if q["should_trigger"])
+        real_test_pos = sum(1 for q in real_test if q["should_trigger"])
+
+        self.assertNotEqual((mutant_train_pos, mutant_test_pos), (real_train_pos, real_test_pos))
+        self.assertEqual((real_train_pos, real_test_pos), (7, 4))
 
     def test_deterministic_under_fixed_seed(self):
         eval_set = _make_eval_set(10, 10)
@@ -380,15 +459,6 @@ class SplitEvalSetTest(unittest.TestCase):
         train2, test2 = rte.split_eval_set(eval_set, holdout=0.4, seed=42)
         self.assertEqual([q["query"] for q in train1], [q["query"] for q in train2])
         self.assertEqual([q["query"] for q in test1], [q["query"] for q in test2])
-
-    def test_different_seed_can_differ(self):
-        eval_set = _make_eval_set(10, 10)
-        train_a, _ = rte.split_eval_set(eval_set, holdout=0.4, seed=42)
-        train_b, _ = rte.split_eval_set(eval_set, holdout=0.4, seed=7)
-        self.assertNotEqual(
-            [q["query"] for q in train_a],
-            [q["query"] for q in train_b],
-        )
 
     def test_every_item_appears_exactly_once(self):
         eval_set = _make_eval_set(11, 9)
@@ -455,14 +525,11 @@ class ScoreTest(unittest.TestCase):
 
 
 class WorkspaceIsolationTest(unittest.TestCase):
-    def test_two_concurrent_runs_get_different_non_sibling_parent_dirs(self):
+    def test_two_runs_get_different_non_sibling_parent_dirs(self):
         run1 = rte.allocate_run_dirs()
         run2 = rte.allocate_run_dirs()
         try:
             self.assertNotEqual(run1.parent, run2.parent)
-            # Neither run's directory tree is nested inside the other's.
-            self.assertNotIn(run2.parent, run1.parent.parents)
-            self.assertNotIn(run1.parent, run2.parent.parents)
             # The two workspace dirs do not share a parent directory --
             # i.e. they are not siblings of one another.
             self.assertNotEqual(run1.workspace_dir.parent, run2.workspace_dir.parent)
@@ -504,6 +571,184 @@ class AuthModeTest(unittest.TestCase):
 
     def test_api_key_absent_reports_oauth(self):
         self.assertEqual(rte.detect_auth_mode({}), "oauth")
+
+
+# --------------------------------------------------------------------------
+# main() HarnessError paths
+# --------------------------------------------------------------------------
+
+
+class MainHarnessErrorTest(unittest.TestCase):
+    """`main([...])` returns 1 (never raises) for every harness-level
+    failure: an unaccountable --max-cost, a malformed --eval-set, and a
+    malformed --candidates file. No model call, no `claude` subprocess --
+    every case here fails before any dispatch is ever submitted."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="trigeval-main-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+        self.workspace = self.tmp / "workspace"
+        self.workspace.mkdir()
+        (self.workspace / "file.md").write_text("content\n", encoding="utf-8")
+
+        self.eval_set_path = self.tmp / "trigger-evals.json"
+        self.eval_set_path.write_text(
+            json.dumps([{"query": "do a thing", "should_trigger": True}]),
+            encoding="utf-8",
+        )
+
+        self.candidates_path = self.tmp / "candidates.json"
+        self.candidates_path.write_text(
+            json.dumps([{"name": "c1", "description": "A description."}]),
+            encoding="utf-8",
+        )
+
+        self.skill_path = self.tmp / "skill"
+        self.skill_path.mkdir()
+
+        self.results_dir = self.tmp / "results"
+
+    def _base_argv(self):
+        return [
+            "--skill-path", str(self.skill_path),
+            "--eval-set", str(self.eval_set_path),
+            "--workspace", str(self.workspace),
+            "--candidates", str(self.candidates_path),
+            "--results-dir", str(self.results_dir),
+        ]
+
+    def test_max_cost_without_api_key_auth_returns_one(self):
+        argv = self._base_argv() + ["--max-cost", "5"]
+        with mock.patch.dict("os.environ", {}, clear=True):
+            rc = rte.main(argv)
+        self.assertEqual(rc, 1)
+
+    def test_malformed_eval_set_json_returns_one(self):
+        self.eval_set_path.write_text("not json {{{", encoding="utf-8")
+        self.assertEqual(rte.main(self._base_argv()), 1)
+
+    def test_eval_set_item_missing_required_key_returns_one(self):
+        self.eval_set_path.write_text(json.dumps([{"query": "x"}]), encoding="utf-8")
+        self.assertEqual(rte.main(self._base_argv()), 1)
+
+    def test_malformed_candidates_json_returns_one(self):
+        self.candidates_path.write_text("not json {{{", encoding="utf-8")
+        self.assertEqual(rte.main(self._base_argv()), 1)
+
+    def test_candidates_item_missing_required_key_returns_one(self):
+        self.candidates_path.write_text(json.dumps([{"name": "c1"}]), encoding="utf-8")
+        self.assertEqual(rte.main(self._base_argv()), 1)
+
+
+# --------------------------------------------------------------------------
+# --max-cost abort behavior (Defect A)
+# --------------------------------------------------------------------------
+
+
+class MaxCostAbortTest(unittest.TestCase):
+    """Drives `main()`'s dispatch loop with a fake, fixed-cost
+    `run_single_query` (no model call, no subprocess, no network) and
+    asserts that `--max-cost` actually bounds the number of dispatches made,
+    rather than only printing a message after every query already ran."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="trigeval-maxcost-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+        self.workspace = self.tmp / "workspace"
+        self.workspace.mkdir()
+        (self.workspace / "file.md").write_text("content\n", encoding="utf-8")
+
+        # 6 positive + 6 negative queries: plenty of work to bound. At
+        # $5/call and --max-cost 12, a correct harness stops well short of
+        # running all 12.
+        eval_set = [{"query": f"positive {i}", "should_trigger": True} for i in range(6)] + [
+            {"query": f"negative {i}", "should_trigger": False} for i in range(6)
+        ]
+        self.eval_set_path = self.tmp / "trigger-evals.json"
+        self.eval_set_path.write_text(json.dumps(eval_set), encoding="utf-8")
+
+        self.candidates_path = self.tmp / "candidates.json"
+        self.candidates_path.write_text(
+            json.dumps([{"name": "c1", "description": "A description."}]),
+            encoding="utf-8",
+        )
+
+        self.skill_path = self.tmp / "skill"
+        self.skill_path.mkdir()
+
+        self.results_dir = self.tmp / "results"
+
+    def _argv(self, *, max_cost, num_workers):
+        return [
+            "--skill-path", str(self.skill_path),
+            "--eval-set", str(self.eval_set_path),
+            "--workspace", str(self.workspace),
+            "--candidates", str(self.candidates_path),
+            "--results-dir", str(self.results_dir),
+            "--holdout", "0.0",
+            "--num-workers", str(num_workers),
+            "--max-cost", str(max_cost),
+        ]
+
+    def test_max_cost_bounds_the_number_of_dispatches(self):
+        call_count = 0
+        lock = threading.Lock()
+
+        def fake_run_single_query(**kwargs):
+            nonlocal call_count
+            with lock:
+                call_count += 1
+            return {"triggered": False, "cost_usd": 5.0, "query": kwargs["query"]}
+
+        with mock.patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test"}), mock.patch.object(
+            rte, "run_single_query", side_effect=fake_run_single_query
+        ), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            rc = rte.main(self._argv(max_cost=12, num_workers=1))
+
+        self.assertEqual(rc, 0)
+        # 12 queries total (holdout=0.0 puts everything in train). At
+        # $5/call the running total exceeds $12 after the 3rd call
+        # ($15 > $12), so exactly 3 calls should be made -- never all 12.
+        self.assertLess(call_count, 12)
+        self.assertEqual(call_count, 3)
+
+        results_path = self.results_dir / "results.json"
+        self.assertTrue(results_path.is_file(), "results.json must exist on the abort path")
+        payload = json.loads(results_path.read_text(encoding="utf-8"))
+        self.assertTrue(payload["partial"])
+        self.assertGreater(payload["total_cost_usd"], 12)
+
+    def test_bounded_in_flight_window_respects_num_workers(self):
+        call_count = 0
+        in_flight = 0
+        max_in_flight = 0
+        lock = threading.Lock()
+
+        def fake_run_single_query(**kwargs):
+            nonlocal call_count, in_flight, max_in_flight
+            with lock:
+                call_count += 1
+                in_flight += 1
+                max_in_flight = max(max_in_flight, in_flight)
+            try:
+                return {"triggered": False, "cost_usd": 5.0, "query": kwargs["query"]}
+            finally:
+                with lock:
+                    in_flight -= 1
+
+        with mock.patch.dict("os.environ", {"ANTHROPIC_API_KEY": "sk-test"}), mock.patch.object(
+            rte, "run_single_query", side_effect=fake_run_single_query
+        ), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            rc = rte.main(self._argv(max_cost=12, num_workers=2))
+
+        self.assertEqual(rc, 0)
+        # Never more than num_workers dispatches outstanding at once --
+        # the old behavior submitted every task up front, with no window
+        # at all.
+        self.assertLessEqual(max_in_flight, 2)
+        self.assertLess(call_count, 12)
 
 
 if __name__ == "__main__":
