@@ -8,9 +8,10 @@
 #              description present, file <= 500 lines).
 #   Stage B -- every tracked *.json file is valid JSON.
 #   Stage C -- every tracked test_*.py suite under a skills/*/scripts/
-#              directory (any plugin, not just scriptorium) is discovered
-#              and run via `python3 -m unittest`; an untracked match is
-#              reported and refused.
+#              directory (any plugin, not just scriptorium) or directly
+#              under a top-level scripts/*/ tooling directory (e.g.
+#              scripts/evals/) is discovered and run via `python3 -m
+#              unittest`; an untracked match is reported and refused.
 #   Stage D -- every tracked scripts/gates/test_*.sh self-test is run,
 #              recursion-guarded by GATE_SELFTEST (see below); an untracked
 #              match is reported and refused.

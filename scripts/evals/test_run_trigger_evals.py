@@ -18,6 +18,7 @@ import shutil
 import tempfile
 import threading
 import unittest
+import uuid as uuid_mod
 from pathlib import Path
 from unittest import mock
 
@@ -29,6 +30,22 @@ import run_trigger_evals as rte
 # --------------------------------------------------------------------------
 
 
+def _tool_use_line(name, tool_input, block_id="t1"):
+    """Build the `assistant` stream envelope wrapping a single `tool_use`
+    content block, mirroring the shape `claude --output-format stream-json`
+    emits for a tool call: `{"type": "assistant", "message": {"content":
+    [{"type": "tool_use", "id": ..., "name": ..., "input": ...}]}}`. Callers
+    that need a raw stream line pass the result through `json.dumps`."""
+    return {
+        "type": "assistant",
+        "message": {
+            "content": [
+                {"type": "tool_use", "id": block_id, "name": name, "input": tool_input}
+            ]
+        },
+    }
+
+
 class DetectTriggerTest(unittest.TestCase):
     def test_skill_at_tool_position_three_behind_bash_and_read(self):
         # Probe B's stream, checked in as a fixture: Bash, Read, then Skill
@@ -36,46 +53,9 @@ class DetectTriggerTest(unittest.TestCase):
         # non-Skill tool the way the old harness's `else: return False` did.
         skill_id = "docsprobe-plugin:docsprobe"
         stream_lines = [
-            json.dumps(
-                {
-                    "type": "assistant",
-                    "message": {
-                        "content": [
-                            {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}
-                        ]
-                    },
-                }
-            ),
-            json.dumps(
-                {
-                    "type": "assistant",
-                    "message": {
-                        "content": [
-                            {
-                                "type": "tool_use",
-                                "id": "t2",
-                                "name": "Read",
-                                "input": {"file_path": "/tmp/x.md"},
-                            }
-                        ]
-                    },
-                }
-            ),
-            json.dumps(
-                {
-                    "type": "assistant",
-                    "message": {
-                        "content": [
-                            {
-                                "type": "tool_use",
-                                "id": "t3",
-                                "name": "Skill",
-                                "input": {"skill": skill_id},
-                            }
-                        ]
-                    },
-                }
-            ),
+            json.dumps(_tool_use_line("Bash", {"command": "ls"}, block_id="t1")),
+            json.dumps(_tool_use_line("Read", {"file_path": "/tmp/x.md"}, block_id="t2")),
+            json.dumps(_tool_use_line("Skill", {"skill": skill_id}, block_id="t3")),
         ]
         triggered, tools = rte.detect_trigger(stream_lines, skill_id)
         self.assertTrue(triggered)
@@ -84,60 +64,19 @@ class DetectTriggerTest(unittest.TestCase):
     def test_near_miss_different_skill_not_detected(self):
         # trigeval-x:docs vs trigeval-x:docsprobe: substring matching would
         # confuse these. Exact match must not.
-        stream_lines = [
-            json.dumps(
-                {
-                    "type": "assistant",
-                    "message": {
-                        "content": [
-                            {
-                                "type": "tool_use",
-                                "id": "t1",
-                                "name": "Skill",
-                                "input": {"skill": "trigeval-x:docsprobe"},
-                            }
-                        ]
-                    },
-                }
-            )
-        ]
+        stream_lines = [json.dumps(_tool_use_line("Skill", {"skill": "trigeval-x:docsprobe"}))]
         triggered, tools = rte.detect_trigger(stream_lines, "trigeval-x:docs")
         self.assertFalse(triggered)
         self.assertEqual(tools, ["Skill"])
 
     def test_near_miss_reverse_direction(self):
-        stream_lines = [
-            json.dumps(
-                {
-                    "type": "assistant",
-                    "message": {
-                        "content": [
-                            {
-                                "type": "tool_use",
-                                "id": "t1",
-                                "name": "Skill",
-                                "input": {"skill": "trigeval-x:docs"},
-                            }
-                        ]
-                    },
-                }
-            )
-        ]
+        stream_lines = [json.dumps(_tool_use_line("Skill", {"skill": "trigeval-x:docs"}))]
         triggered, _ = rte.detect_trigger(stream_lines, "trigeval-x:docsprobe")
         self.assertFalse(triggered)
 
     def test_no_skill_call_returns_false(self):
         stream_lines = [
-            json.dumps(
-                {
-                    "type": "assistant",
-                    "message": {
-                        "content": [
-                            {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}
-                        ]
-                    },
-                }
-            ),
+            json.dumps(_tool_use_line("Bash", {"command": "ls"})),
             json.dumps({"type": "result", "total_cost_usd": 0.02}),
         ]
         triggered, tools = rte.detect_trigger(stream_lines, "trigeval-x:docs")
@@ -148,21 +87,7 @@ class DetectTriggerTest(unittest.TestCase):
         stream_lines = [
             "not json at all {{{",
             "",
-            json.dumps(
-                {
-                    "type": "assistant",
-                    "message": {
-                        "content": [
-                            {
-                                "type": "tool_use",
-                                "id": "t1",
-                                "name": "Skill",
-                                "input": {"skill": "trigeval-x:docs"},
-                            }
-                        ]
-                    },
-                }
-            ),
+            json.dumps(_tool_use_line("Skill", {"skill": "trigeval-x:docs"})),
         ]
         triggered, tools = rte.detect_trigger(stream_lines, "trigeval-x:docs")
         self.assertTrue(triggered)
@@ -339,10 +264,10 @@ class BuildPluginDirTest(unittest.TestCase):
 
     def test_manifest_is_valid_json_with_nine_fields(self):
         # Pin the literal nine field names from CLAUDE.md ("Adding a new
-        # plugin") rather than looping over rte.MANIFEST_FIELDS: comparing
-        # against the constant the implementation itself owns would not
-        # catch a field silently dropped from both the constant and the
-        # manifest it builds.
+        # plugin") rather than looping over an implementation-owned
+        # constant: comparing against a constant the implementation itself
+        # owns would not catch a field silently dropped from both the
+        # constant and the manifest it builds.
         expected_fields = [
             "author",
             "category",
@@ -354,8 +279,6 @@ class BuildPluginDirTest(unittest.TestCase):
             "repository",
             "version",
         ]
-        self.assertEqual(len(rte.MANIFEST_FIELDS), 9)
-        self.assertEqual(sorted(rte.MANIFEST_FIELDS), expected_fields)
 
         dest = self.tmp / "trigeval-deadbeef1234"
         rte.build_plugin_dir(self.skill_path, "A candidate description.", dest)
@@ -578,11 +501,16 @@ class AuthModeTest(unittest.TestCase):
 # --------------------------------------------------------------------------
 
 
-class MainHarnessErrorTest(unittest.TestCase):
-    """`main([...])` returns 1 (never raises) for every harness-level
-    failure: an unaccountable --max-cost, a malformed --eval-set, and a
-    malformed --candidates file. No model call, no `claude` subprocess --
-    every case here fails before any dispatch is ever submitted."""
+class _MainHarnessTestBase(unittest.TestCase):
+    """Shared `main()`-driving fixture: a temp workspace with one seed file,
+    a candidates file with one candidate ("c1"), an empty skill directory,
+    and a results dir. Subclasses that need a different labeled query set
+    override the `EVAL_SET` class attribute; `_argv(**extra)` builds the
+    five required flags plus one `--flag-name value` pair per keyword
+    argument (underscores become dashes: `num_workers=1` -> `--num-workers
+    1`)."""
+
+    EVAL_SET = [{"query": "do a thing", "should_trigger": True}]
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="trigeval-main-"))
@@ -593,10 +521,7 @@ class MainHarnessErrorTest(unittest.TestCase):
         (self.workspace / "file.md").write_text("content\n", encoding="utf-8")
 
         self.eval_set_path = self.tmp / "trigger-evals.json"
-        self.eval_set_path.write_text(
-            json.dumps([{"query": "do a thing", "should_trigger": True}]),
-            encoding="utf-8",
-        )
+        self.eval_set_path.write_text(json.dumps(self.EVAL_SET), encoding="utf-8")
 
         self.candidates_path = self.tmp / "candidates.json"
         self.candidates_path.write_text(
@@ -609,36 +534,51 @@ class MainHarnessErrorTest(unittest.TestCase):
 
         self.results_dir = self.tmp / "results"
 
-    def _base_argv(self):
-        return [
+    def _argv(self, **extra):
+        argv = [
             "--skill-path", str(self.skill_path),
             "--eval-set", str(self.eval_set_path),
             "--workspace", str(self.workspace),
             "--candidates", str(self.candidates_path),
             "--results-dir", str(self.results_dir),
         ]
+        for flag, value in extra.items():
+            argv += [f"--{flag.replace('_', '-')}", str(value)]
+        return argv
+
+
+# --------------------------------------------------------------------------
+# main() HarnessError paths
+# --------------------------------------------------------------------------
+
+
+class MainHarnessErrorTest(_MainHarnessTestBase):
+    """`main([...])` returns 1 (never raises) for every harness-level
+    failure: an unaccountable --max-cost, a malformed --eval-set, and a
+    malformed --candidates file. No model call, no `claude` subprocess --
+    every case here fails before any dispatch is ever submitted."""
 
     def test_max_cost_without_api_key_auth_returns_one(self):
-        argv = self._base_argv() + ["--max-cost", "5"]
+        argv = self._argv() + ["--max-cost", "5"]
         with mock.patch.dict("os.environ", {}, clear=True):
             rc = rte.main(argv)
         self.assertEqual(rc, 1)
 
     def test_malformed_eval_set_json_returns_one(self):
         self.eval_set_path.write_text("not json {{{", encoding="utf-8")
-        self.assertEqual(rte.main(self._base_argv()), 1)
+        self.assertEqual(rte.main(self._argv()), 1)
 
     def test_eval_set_item_missing_required_key_returns_one(self):
         self.eval_set_path.write_text(json.dumps([{"query": "x"}]), encoding="utf-8")
-        self.assertEqual(rte.main(self._base_argv()), 1)
+        self.assertEqual(rte.main(self._argv()), 1)
 
     def test_malformed_candidates_json_returns_one(self):
         self.candidates_path.write_text("not json {{{", encoding="utf-8")
-        self.assertEqual(rte.main(self._base_argv()), 1)
+        self.assertEqual(rte.main(self._argv()), 1)
 
     def test_candidates_item_missing_required_key_returns_one(self):
         self.candidates_path.write_text(json.dumps([{"name": "c1"}]), encoding="utf-8")
-        self.assertEqual(rte.main(self._base_argv()), 1)
+        self.assertEqual(rte.main(self._argv()), 1)
 
 
 # --------------------------------------------------------------------------
@@ -646,51 +586,21 @@ class MainHarnessErrorTest(unittest.TestCase):
 # --------------------------------------------------------------------------
 
 
-class MaxCostAbortTest(unittest.TestCase):
+class MaxCostAbortTest(_MainHarnessTestBase):
     """Drives `main()`'s dispatch loop with a fake, fixed-cost
     `run_single_query` (no model call, no subprocess, no network) and
     asserts that `--max-cost` actually bounds the number of dispatches made,
     rather than only printing a message after every query already ran."""
 
-    def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="trigeval-maxcost-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-
-        self.workspace = self.tmp / "workspace"
-        self.workspace.mkdir()
-        (self.workspace / "file.md").write_text("content\n", encoding="utf-8")
-
-        # 6 positive + 6 negative queries: plenty of work to bound. At
-        # $5/call and --max-cost 12, a correct harness stops well short of
-        # running all 12.
-        eval_set = [{"query": f"positive {i}", "should_trigger": True} for i in range(6)] + [
-            {"query": f"negative {i}", "should_trigger": False} for i in range(6)
-        ]
-        self.eval_set_path = self.tmp / "trigger-evals.json"
-        self.eval_set_path.write_text(json.dumps(eval_set), encoding="utf-8")
-
-        self.candidates_path = self.tmp / "candidates.json"
-        self.candidates_path.write_text(
-            json.dumps([{"name": "c1", "description": "A description."}]),
-            encoding="utf-8",
-        )
-
-        self.skill_path = self.tmp / "skill"
-        self.skill_path.mkdir()
-
-        self.results_dir = self.tmp / "results"
+    # 6 positive + 6 negative queries: plenty of work to bound. At $5/call
+    # and --max-cost 12, a correct harness stops well short of running all
+    # 12.
+    EVAL_SET = [{"query": f"positive {i}", "should_trigger": True} for i in range(6)] + [
+        {"query": f"negative {i}", "should_trigger": False} for i in range(6)
+    ]
 
     def _argv(self, *, max_cost, num_workers):
-        return [
-            "--skill-path", str(self.skill_path),
-            "--eval-set", str(self.eval_set_path),
-            "--workspace", str(self.workspace),
-            "--candidates", str(self.candidates_path),
-            "--results-dir", str(self.results_dir),
-            "--holdout", "0.0",
-            "--num-workers", str(num_workers),
-            "--max-cost", str(max_cost),
-        ]
+        return super()._argv(holdout=0.0, num_workers=num_workers, max_cost=max_cost)
 
     def test_max_cost_bounds_the_number_of_dispatches(self):
         call_count = 0
@@ -749,6 +659,400 @@ class MaxCostAbortTest(unittest.TestCase):
         # at all.
         self.assertLessEqual(max_in_flight, 2)
         self.assertLess(call_count, 12)
+
+# --------------------------------------------------------------------------
+# run_single_query returncode handling (Finding 1)
+# --------------------------------------------------------------------------
+
+
+class _FakeStream:
+    """Minimal stand-in for `proc.stdout` / `proc.stderr`: a line queue with
+    a `.readline()` that returns "" once drained, matching the real
+    `subprocess.Popen(..., text=True)` stream contract closely enough for
+    `run_single_query`'s reader loop."""
+
+    def __init__(self, lines):
+        self._lines = list(lines)
+
+    def readline(self):
+        if self._lines:
+            return self._lines.pop(0)
+        return ""
+
+
+class _FakeStderr:
+    def __init__(self, text):
+        self._text = text
+
+    def read(self):
+        return self._text
+
+
+class _FakeProc:
+    """Stand-in for `subprocess.Popen`. `returncode` is fixed at
+    construction time and `poll()` always returns it -- i.e. the fake
+    process is already "finished" the instant it's created. That is enough
+    for `run_single_query`'s logic: it only ever consults `poll()` after
+    `readline()` returns "" (EOF) or when deciding whether to `terminate()`
+    in its `finally`, and a pre-finished process correctly skips that
+    `terminate()` call, exactly like a process that exited on its own before
+    the harness got to it."""
+
+    def __init__(self, stdout_lines, stderr_text, returncode):
+        self.stdout = _FakeStream(stdout_lines)
+        self.stderr = _FakeStderr(stderr_text)
+        self.returncode = returncode
+
+    def poll(self):
+        return self.returncode
+
+    def terminate(self):  # pragma: no cover -- not exercised, poll() already non-None
+        pass
+
+    def kill(self):  # pragma: no cover
+        pass
+
+    def wait(self, timeout=None):  # pragma: no cover
+        return self.returncode
+
+
+class RunSingleQueryReturncodeTest(unittest.TestCase):
+    """`run_single_query` must never score a nonzero subprocess exit as a
+    clean non-trigger: the `claude` process may have died on an auth
+    failure, a bad flag, or a crash before producing any usable stdout, and
+    `detect_trigger` cannot tell that apart from an honest negative. It
+    must ALSO never raise when the nonzero/negative exit follows the
+    harness's own `terminate()` on a detected trigger -- that path is
+    expected, not a failure. No network call, no real `claude` subprocess:
+    `subprocess.Popen` is replaced with `_FakeProc` end to end."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix="trigeval-rsq-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+
+        self.skill_path = self.tmp / "skill"
+        self.skill_path.mkdir()
+        (self.skill_path / "SKILL.md").write_text(SAMPLE_SKILL_MD, encoding="utf-8")
+
+        self.workspace = self.tmp / "workspace"
+        self.workspace.mkdir()
+        (self.workspace / "file.md").write_text("content\n", encoding="utf-8")
+
+    def test_nonzero_exit_without_trigger_raises_with_returncode_and_stderr(self):
+        with mock.patch.object(
+            rte.subprocess,
+            "Popen",
+            return_value=_FakeProc(stdout_lines=[], stderr_text="auth error: invalid API key", returncode=1),
+        ):
+            with self.assertRaises(rte.HarnessError) as ctx:
+                rte.run_single_query(
+                    skill_path=self.skill_path,
+                    description="A description.",
+                    workspace=self.workspace,
+                    query="do a thing",
+                )
+        message = str(ctx.exception)
+        # "exited 1" (not a bare "1") binds the returncode to its context --
+        # a bare digit check would still pass if the returncode were
+        # dropped from the message and only a timeout-in-seconds happened
+        # to remain.
+        self.assertIn("exited 1", message)
+        self.assertIn("auth error: invalid API key", message)
+
+    def test_stderr_tail_is_bounded_not_the_full_text(self):
+        # The delta's `_STDERR_TAIL_CHARS` bound on the stderr tail is
+        # otherwise unverified: a regression to unbounded `stderr_text`
+        # (e.g. dropping the `[-_STDERR_TAIL_CHARS:]` slice) would ship
+        # green with no test catching it. 10000 chars of stderr, well past
+        # the 4000-char bound, must land in the raised message truncated to
+        # at most `_STDERR_TAIL_CHARS`, not in full.
+        huge_stderr = "x" * 10000
+        with mock.patch.object(
+            rte.subprocess,
+            "Popen",
+            return_value=_FakeProc(stdout_lines=[], stderr_text=huge_stderr, returncode=1),
+        ):
+            with self.assertRaises(rte.HarnessError) as ctx:
+                rte.run_single_query(
+                    skill_path=self.skill_path,
+                    description="A description.",
+                    workspace=self.workspace,
+                    query="do a thing",
+                )
+        message = str(ctx.exception)
+        # "exited" itself contains an "x", so split off the stderr-tail
+        # portion of the message before counting -- a bare `message.count`
+        # would silently include that one unrelated "x" and mask an
+        # off-by-one in the bound.
+        _, _, tail_in_message = message.partition("stderr tail:\n")
+        self.assertEqual(len(tail_in_message), rte._STDERR_TAIL_CHARS)
+        self.assertEqual(tail_in_message, huge_stderr[-rte._STDERR_TAIL_CHARS:])
+        self.assertLess(len(message), len(huge_stderr))
+
+    def test_zero_exit_without_trigger_does_not_raise(self):
+        # Ordinary negative case must keep working: a clean exit 0 with no
+        # Skill call is a real non-trigger, not a harness failure.
+        # Never-red by design: this is the intended negative branch of the
+        # new `if not triggered and proc.returncode:` condition, guarding
+        # against a future over-broad version of that check (e.g. one that
+        # raises on ANY non-triggering run regardless of returncode). A
+        # passing result here is not evidence this delta did nothing.
+        with mock.patch.object(
+            rte.subprocess,
+            "Popen",
+            return_value=_FakeProc(stdout_lines=[], stderr_text="", returncode=0),
+        ):
+            result = rte.run_single_query(
+                skill_path=self.skill_path,
+                description="A description.",
+                workspace=self.workspace,
+                query="do a thing",
+            )
+        self.assertFalse(result["triggered"])
+
+    def test_nonzero_or_terminated_exit_after_trigger_does_not_raise(self):
+        # A negative returncode here (e.g. -15 for SIGTERM) is EXPECTED --
+        # the harness itself terminates the subprocess the instant a
+        # trigger is detected -- and must not be mistaken for a failure.
+        # Never-red by design: this is the intended negative branch of the
+        # new `if not triggered and proc.returncode:` condition, guarding
+        # against a future over-broad version of that check (e.g. one that
+        # raises on any nonzero/negative returncode regardless of whether a
+        # trigger was already detected). A passing result here is not
+        # evidence this delta did nothing.
+        fixed_uuid = uuid_mod.UUID("12345678-1234-5678-1234-567812345678")
+        run_id = fixed_uuid.hex[:12]
+        skill_id = f"trigeval-{run_id}:docs"
+
+        with mock.patch.object(rte.uuid, "uuid4", return_value=fixed_uuid), mock.patch.object(
+            rte.subprocess,
+            "Popen",
+            return_value=_FakeProc(
+                stdout_lines=[json.dumps(_tool_use_line("Skill", {"skill": skill_id})) + "\n"],
+                stderr_text="",
+                returncode=-15,
+            ),
+        ):
+            result = rte.run_single_query(
+                skill_path=self.skill_path,
+                description="A description.",
+                workspace=self.workspace,
+                query="do a thing",
+            )
+        self.assertTrue(result["triggered"])
+
+
+# --------------------------------------------------------------------------
+# main() error-recording and mid-run results.json accuracy (Findings 1 & 2)
+# --------------------------------------------------------------------------
+
+
+class DispatchErrorRecordingTest(_MainHarnessTestBase):
+    """A dispatch whose `run_single_query` raises (e.g. the `HarnessError`
+    a nonzero subprocess exit now produces) must land in its own "errors"
+    list in results.json, mark the run partial, and NOT be counted in
+    per_query_counts as a clean non-trigger. `main()` must still return 0 --
+    a dispatch failure is a per-run failure, not a harness crash."""
+
+    def _argv(self):
+        return super()._argv(holdout="0.0", num_workers=1)
+
+    def test_errored_dispatch_marks_partial_and_is_not_a_clean_non_trigger(self):
+        def fake_run_single_query(**kwargs):
+            raise rte.HarnessError(
+                "claude subprocess exited 1 without triggering a skill call "
+                "(query='do a thing'); stderr tail:\nauth error"
+            )
+
+        with mock.patch.object(
+            rte, "run_single_query", side_effect=fake_run_single_query
+        ), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            rc = rte.main(self._argv())
+
+        self.assertEqual(rc, 0)
+
+        payload = json.loads((self.results_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertTrue(payload["partial"])
+
+        candidate = payload["candidates"]["c1"]
+        # The errored run must NOT show up as a clean, zero-rate non-trigger
+        # in the scored results -- that's exactly the silent-poisoning bug
+        # this fix closes.
+        self.assertEqual(candidate["results"], [])
+        self.assertEqual(len(candidate.get("errors", [])), 1)
+        error_entry = candidate["errors"][0]
+        self.assertEqual(error_entry["query"], "do a thing")
+        self.assertEqual(error_entry["split"], "train")
+        self.assertIn("auth error", error_entry["error"])
+
+    def test_errored_dispatch_warns_with_dispatch_error_cause_not_max_cost(self):
+        # Defect (GitHub issue #35): the terminal stderr warning hardcoded
+        # "--max-cost" wording regardless of WHY the run went partial. A
+        # run invoked WITHOUT --max-cost that suffers a single dispatch
+        # error must not claim it "stopped early on --max-cost" -- it
+        # didn't -- and must instead name the dispatch-error cause.
+        def fake_run_single_query(**kwargs):
+            raise rte.HarnessError(
+                "claude subprocess exited 1 without triggering a skill call "
+                "(query='do a thing'); stderr tail:\nauth error"
+            )
+
+        stderr = io.StringIO()
+        with mock.patch.object(
+            rte, "run_single_query", side_effect=fake_run_single_query
+        ), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            rc = rte.main(self._argv())
+
+        self.assertEqual(rc, 0)
+        output = stderr.getvalue()
+        self.assertNotIn("--max-cost", output)
+        self.assertIn("1 dispatch error", output)
+
+
+class WriteResultsMidRunTest(_MainHarnessTestBase):
+    """The per-dispatch `_write_results()` call in `main()` is the whole
+    reason a `kill -9` mid-run still leaves an accurate on-disk
+    `results.json` -- the observed live-money incident produced zero
+    artifact for a $16.06 run because the only write happened after the
+    collection loop, which the process never reached. This drives `main()`
+    with `--num-workers 1` (so dispatches are strictly sequential) and a
+    fake `run_single_query` that, on the SECOND dispatch, reads
+    results.json off disk and asserts the FIRST dispatch's data is already
+    there, correct, and complete -- before `main()` itself has returned.
+
+    `test_earlier_dispatch_result_on_disk_before_later_dispatch_completes`
+    below is a characterization/regression guard for 38e0d25's per-dispatch
+    write on the SUCCESS path: that write already existed, unconditionally,
+    before this delta, so the test passes verbatim against pre-change
+    `run_trigger_evals.py` and pins existing behavior rather than an
+    acceptance criterion of this delta.
+
+    `test_earlier_dispatch_error_on_disk_before_later_dispatch_completes`
+    below IS this delta's acceptance criterion: the per-dispatch
+    `_write_results()` call inside the ERROR handler must land an `errors`
+    entry (and `partial=True`) on disk before the next dispatch is
+    submitted, and the failed dispatch must never be folded into `results`
+    as a silent, poisoning non-trigger. Confirmed red against `git show
+    HEAD:scripts/evals/run_trigger_evals.py` (pre-change: the except-block
+    there has no `errors` bookkeeping and no per-dispatch write, so
+    `payload["partial"]` reads `False` and the exception is instead folded
+    into `per_query_counts` as a fake `{"triggered": False, "cost_usd":
+    0.0}` result) and green against this delta, before being added here."""
+
+    EVAL_SET = [
+        {"query": "first query", "should_trigger": True},
+        {"query": "second query", "should_trigger": False},
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.results_path = self.results_dir / "results.json"
+
+    def _argv(self):
+        return super()._argv(holdout="0.0", num_workers=1)
+
+    def test_earlier_dispatch_result_on_disk_before_later_dispatch_completes(self):
+        call_order = []
+        failures = []
+
+        def fake_run_single_query(**kwargs):
+            call_order.append(kwargs["query"])
+            if kwargs["query"] == "second query":
+                # num_workers=1 guarantees this dispatch was only submitted
+                # after the first dispatch's completion handler --
+                # including its _write_results() call -- already ran, so
+                # results.json must already reflect the first dispatch here.
+                try:
+                    payload = json.loads(self.results_path.read_text(encoding="utf-8"))
+                    candidate = payload["candidates"]["c1"]
+                    results_by_query = {r["query"]: r for r in candidate["results"]}
+                    self.assertIn("first query", results_by_query)
+                    first = results_by_query["first query"]
+                    self.assertEqual(first["triggered_runs"], 1)
+                    self.assertEqual(first["total_runs"], 1)
+                    self.assertEqual(payload["total_cost_usd"], 3.0)
+                except Exception as exc:  # noqa: BLE001 -- re-raised on the main thread below
+                    # Broad on purpose: this runs inside a worker thread
+                    # dispatched by main(), which now catches ANY exception
+                    # from a dispatch (that's Finding 1's fix) and records
+                    # it instead of crashing. A narrower `except
+                    # AssertionError` would let a FileNotFoundError from a
+                    # missing results.json (the exact failure mode this
+                    # test exists to catch) get silently swallowed by
+                    # main()'s per-dispatch error handling instead of
+                    # failing this test.
+                    failures.append(exc)
+                return {"triggered": False, "cost_usd": 2.0, "query": kwargs["query"]}
+            return {"triggered": True, "cost_usd": 3.0, "query": kwargs["query"]}
+
+        with mock.patch.object(
+            rte, "run_single_query", side_effect=fake_run_single_query
+        ), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            rc = rte.main(self._argv())
+
+        self.assertEqual(rc, 0)
+        if failures:
+            raise failures[0]
+        self.assertEqual(call_order, ["first query", "second query"])
+
+    def test_earlier_dispatch_error_on_disk_before_later_dispatch_completes(self):
+        # This is the branch this delta actually added: the ERROR handler's
+        # own `_write_results()` call. On the SECOND dispatch, reads
+        # results.json off disk and asserts the FIRST dispatch's *error* is
+        # already there -- `partial=True`, an "errors" entry recording the
+        # split/query/message, and the failed query NOT silently folded
+        # into "results" as a clean non-trigger -- before main() itself has
+        # returned. Confirmed red against `git show
+        # HEAD:scripts/evals/run_trigger_evals.py`, where the except-block
+        # has no error bookkeeping and no per-dispatch write at all: it
+        # instead substitutes a fake `{"triggered": False, "cost_usd": 0.0}`
+        # result and lets the normal success-path code (and its own
+        # _write_results() call further down) record that as if it were a
+        # real, clean negative run.
+        call_order = []
+        failures = []
+
+        def fake_run_single_query(**kwargs):
+            call_order.append(kwargs["query"])
+            if kwargs["query"] == "first query":
+                raise rte.HarnessError(
+                    "claude subprocess exited 1 without triggering a skill call "
+                    "(query='first query'); stderr tail:\nauth error"
+                )
+            # num_workers=1 guarantees this dispatch was only submitted
+            # after the first dispatch's error handler -- including its
+            # _write_results() call -- already ran, so results.json must
+            # already reflect the first dispatch's error here.
+            try:
+                payload = json.loads(self.results_path.read_text(encoding="utf-8"))
+                candidate = payload["candidates"]["c1"]
+                self.assertTrue(payload["partial"])
+                errors_by_query = {e["query"]: e for e in candidate.get("errors", [])}
+                self.assertIn("first query", errors_by_query)
+                self.assertEqual(errors_by_query["first query"]["split"], "train")
+                self.assertIn("auth error", errors_by_query["first query"]["error"])
+                results_by_query = {r["query"]: r for r in candidate.get("results", [])}
+                self.assertNotIn("first query", results_by_query)
+            except Exception as exc:  # noqa: BLE001 -- re-raised on the main thread below
+                # Broad on purpose, for the same reason as the sibling test
+                # above: this runs inside a worker thread dispatched by
+                # main(), which catches ANY exception from a dispatch and
+                # records it instead of crashing. A narrower `except
+                # AssertionError` would let a FileNotFoundError from a
+                # missing results.json get silently swallowed by main()'s
+                # per-dispatch error handling instead of failing this test.
+                failures.append(exc)
+            return {"triggered": False, "cost_usd": 2.0, "query": kwargs["query"]}
+
+        with mock.patch.object(
+            rte, "run_single_query", side_effect=fake_run_single_query
+        ), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            rc = rte.main(self._argv())
+
+        self.assertEqual(rc, 0)
+        if failures:
+            raise failures[0]
+        self.assertEqual(call_order, ["first query", "second query"])
 
 
 if __name__ == "__main__":

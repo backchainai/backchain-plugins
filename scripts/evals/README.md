@@ -81,6 +81,25 @@ is named `trigeval-<uuid>`, so the id is unique to that run. The subprocess
 is killed the instant a match is detected; every further turn only spends
 money without changing the measurement.
 
+## Dispatch failures
+
+A `claude` subprocess that exits nonzero without ever calling `Skill` is not
+a real non-trigger: an auth failure, a bad flag, an OOM, or a crash can all
+leave stdout empty or truncated, which `detect_trigger` cannot tell apart
+from an honest negative. `run_single_query` raises `HarnessError` naming the
+returncode and a bounded tail of stderr in that case. A nonzero or negative
+returncode on a run that DID trigger is expected, not a failure -- the
+harness `terminate()`s the subprocess itself the instant a match is found --
+and never raises.
+
+`main()`'s per-dispatch handler catches that (and any other
+`run_single_query` failure), prints an `ERROR` line, marks the run under the
+candidate's `errors` list in `results.json` (query, split, and the error
+text), and sets `partial: true`. It does not fabricate a zero-rate entry in
+`results` for the failed query, so a dispatch failure can never silently
+score as a clean non-trigger. The run still completes and `main()` still
+returns 0; a dispatch failure is a per-run failure, not a harness crash.
+
 ## Running a trigger eval
 
 ```

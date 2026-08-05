@@ -31,7 +31,7 @@ Usage:
       --workspace scriptorium/evals/fixtures/trigger-workspace \
       --candidates scriptorium/evals/candidates/docs-2026-08.json \
       --model claude-sonnet-5 --runs-per-query 1 --holdout 0.4 \
-      --results-dir scriptorium-workspace/trigger
+      --results-dir trigger-evals-workspace/docs
 
 Exit 0 on a completed run regardless of scores -- a low score is data, not a
 harness failure. Exit 1 only when the harness itself could not run (a
@@ -52,6 +52,7 @@ import tempfile
 import time
 import uuid
 from collections import namedtuple
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -61,20 +62,9 @@ DEFAULT_HOLDOUT = 0.4
 DEFAULT_SEED = 42
 DEFAULT_NUM_WORKERS = 6
 DEFAULT_TIMEOUT_S = 180
+_STDERR_TAIL_CHARS = 4000
 
-MANIFEST_FIELDS = (
-    "name",
-    "description",
-    "version",
-    "author",
-    "license",
-    "keywords",
-    "category",
-    "repository",
-    "homepage",
-)
-
-RunDirs = namedtuple("RunDirs", ["parent", "plugin_dir", "workspace_dir"])
+RunDirs = namedtuple("RunDirs", ["parent", "workspace_dir"])
 
 
 class HarnessError(RuntimeError):
@@ -195,7 +185,6 @@ def build_plugin_dir(skill_path: Path | str, description: str, dest: Path | str)
         "repository": "https://github.com/backchainai/backchain-plugins",
         "homepage": "https://github.com/backchainai/backchain-plugins",
     }
-    assert set(MANIFEST_FIELDS) <= set(manifest)
     (manifest_dir / "plugin.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
     skill_dest = dest / "skills" / skill_name
@@ -213,14 +202,16 @@ def build_plugin_dir(skill_path: Path | str, description: str, dest: Path | str)
 def allocate_run_dirs(prefix: str = "trigeval-run-") -> RunDirs:
     """Allocates a fresh, isolated parent temp directory for one run.
 
-    Each run gets its own top-level parent directory holding exactly two
-    children: `plugin/` and `workspace/`. No two runs ever share a parent,
-    so one run's workspace can never see a sibling run's directory the way
-    probe C did (see the ADR). Callers `shutil.rmtree(dirs.parent)` when
-    done, in a `finally`.
+    Each run gets its own top-level parent directory holding one real
+    child, `workspace/`, plus whatever plugin directory the caller
+    materializes alongside it (see `run_single_query`, which builds its
+    plugin at `trigeval-<run_id>/`). No two runs ever share a parent, so one
+    run's workspace can never see a sibling run's directory the way probe C
+    did (see the ADR). Callers `shutil.rmtree(dirs.parent)` when done, in a
+    `finally`.
     """
     parent = Path(tempfile.mkdtemp(prefix=prefix))
-    return RunDirs(parent=parent, plugin_dir=parent / "plugin", workspace_dir=parent / "workspace")
+    return RunDirs(parent=parent, workspace_dir=parent / "workspace")
 
 
 # --------------------------------------------------------------------------
@@ -240,8 +231,13 @@ def _iter_tool_use_blocks(obj: Any) -> Iterable[dict]:
             yield from _iter_tool_use_blocks(item)
 
 
-def detect_trigger(stream_lines: Iterable[str], skill_id: str) -> tuple[bool, list[str]]:
-    """Scans a `claude -p --output-format stream-json` transcript for a match.
+class TriggerScanner:
+    """Stateful, incremental counterpart to `detect_trigger`: `feed(line)`
+    parses exactly one transcript line and folds it into running state, so a
+    caller reading a growing stream can call `feed` once per new line
+    instead of re-scanning every line seen so far. `detect_trigger` below is
+    a thin wrapper that constructs one scanner and feeds it the whole
+    stream; the two must always agree on a given input.
 
     Reads both complete `assistant` message events (each `tool_use` content
     block fully formed) and `stream_event` partial-message events (a tool_use
@@ -250,35 +246,39 @@ def detect_trigger(stream_lines: Iterable[str], skill_id: str) -> tuple[bool, li
     requires `name == "Skill"` and the accumulated `input.skill` EXACTLY
     equal to `skill_id`, the full `<plugin>:<skill>` form -- a substring
     test would let `trigeval-x:docs` match `trigeval-x:docsprobe`.
-
-    Malformed JSON lines are skipped, not raised. Returns
-    `(triggered, tools)` where `tools` is every tool name observed, in
-    encounter order (diagnostic only). Returns `(False, tools)` if no match
-    is found by the end of the stream.
     """
-    tools: list[str] = []
-    triggered = False
-    block_names: dict[Any, str | None] = {}
-    block_json: dict[Any, str] = {}
 
-    def _note_match(name: Any, skill_input: Any) -> bool:
-        return name == "Skill" and isinstance(skill_input, dict) and skill_input.get("skill") == skill_id
+    def __init__(self, skill_id: str) -> None:
+        self.skill_id = skill_id
+        self.triggered = False
+        self.tools: list[str] = []
+        self._block_names: dict[Any, str | None] = {}
+        self._block_json: dict[Any, str] = {}
 
-    for raw in stream_lines:
+    def _note_match(self, name: Any, skill_input: Any) -> bool:
+        return name == "Skill" and isinstance(skill_input, dict) and skill_input.get("skill") == self.skill_id
+
+    def feed(self, raw: str) -> bool:
+        """Parses one transcript line and folds it into running state.
+
+        Malformed JSON lines are skipped, not raised. Returns the current
+        `triggered` state after processing this line (also available as
+        `self.triggered`).
+        """
         line = (raw or "").strip()
         if not line:
-            continue
+            return self.triggered
         try:
             obj = json.loads(line)
         except (json.JSONDecodeError, TypeError, ValueError):
-            continue
+            return self.triggered
         if not isinstance(obj, dict):
-            continue
+            return self.triggered
 
         if obj.get("type") == "stream_event":
             event = obj.get("event")
             if not isinstance(event, dict):
-                continue
+                return self.triggered
             etype = event.get("type")
             index = event.get("index")
 
@@ -286,26 +286,26 @@ def detect_trigger(stream_lines: Iterable[str], skill_id: str) -> tuple[bool, li
                 block = event.get("content_block")
                 if isinstance(block, dict) and block.get("type") == "tool_use":
                     name = block.get("name")
-                    block_names[index] = name
-                    block_json[index] = ""
+                    self._block_names[index] = name
+                    self._block_json[index] = ""
                     if name:
-                        tools.append(name)
-                    if _note_match(name, block.get("input")):
-                        triggered = True
+                        self.tools.append(name)
+                    if self._note_match(name, block.get("input")):
+                        self.triggered = True
 
             elif etype == "content_block_delta":
                 delta = event.get("delta")
-                if isinstance(delta, dict) and delta.get("type") == "input_json_delta" and index in block_json:
-                    block_json[index] += delta.get("partial_json", "") or ""
-                    name = block_names.get(index)
+                if isinstance(delta, dict) and delta.get("type") == "input_json_delta" and index in self._block_json:
+                    self._block_json[index] += delta.get("partial_json", "") or ""
+                    name = self._block_names.get(index)
                     if name == "Skill":
                         try:
-                            parsed = json.loads(block_json[index])
+                            parsed = json.loads(self._block_json[index])
                         except (json.JSONDecodeError, TypeError, ValueError):
                             parsed = None
-                        if _note_match(name, parsed):
-                            triggered = True
-            continue
+                        if self._note_match(name, parsed):
+                            self.triggered = True
+            return self.triggered
 
         # Non-stream_event top-level messages: scan for complete tool_use
         # blocks anywhere in the payload (assistant messages nest them under
@@ -313,11 +313,26 @@ def detect_trigger(stream_lines: Iterable[str], skill_id: str) -> tuple[bool, li
         for block in _iter_tool_use_blocks(obj):
             name = block.get("name")
             if name:
-                tools.append(name)
-            if _note_match(name, block.get("input")):
-                triggered = True
+                self.tools.append(name)
+            if self._note_match(name, block.get("input")):
+                self.triggered = True
 
-    return triggered, tools
+        return self.triggered
+
+
+def detect_trigger(stream_lines: Iterable[str], skill_id: str) -> tuple[bool, list[str]]:
+    """Scans a `claude -p --output-format stream-json` transcript for a match.
+
+    Thin wrapper around `TriggerScanner`: constructs one scanner, feeds it
+    every line in `stream_lines`, and returns `(triggered, tools)` where
+    `tools` is every tool name observed, in encounter order (diagnostic
+    only). Returns `(False, tools)` if no match is found by the end of the
+    stream.
+    """
+    scanner = TriggerScanner(skill_id)
+    for raw in stream_lines:
+        scanner.feed(raw)
+    return scanner.triggered, scanner.tools
 
 
 # --------------------------------------------------------------------------
@@ -352,19 +367,19 @@ def split_eval_set(
 def score(results: list[dict], threshold: float = 0.5) -> dict:
     """Scores per-query trigger rates against `threshold`.
 
-    Each item in `results` carries `should_trigger` (bool) and either
-    `triggered_runs`/`total_runs` or `trigger_count`/`runs` run-level
-    counts. A query passes when `(rate >= threshold) == should_trigger`.
-    Returns per-query pass/fail plus precision, recall, and accuracy
-    computed over the run-level (predicted vs. actual) counts.
+    Each item in `results` carries `should_trigger` (bool) and the
+    run-level counts `triggered_runs`/`total_runs`. A query passes when
+    `(rate >= threshold) == should_trigger`. Returns per-query pass/fail
+    plus precision, recall, and accuracy computed over the run-level
+    (predicted vs. actual) counts.
     """
     per_query = []
     tp = fp = fn = tn = 0
 
     for item in results:
         should = bool(item.get("should_trigger"))
-        total = item.get("total_runs", item.get("runs", 1)) or 1
-        triggered = item.get("triggered_runs", item.get("trigger_count", 0))
+        total = item.get("total_runs", 1) or 1
+        triggered = item.get("triggered_runs", 0)
         rate = triggered / total
         predicted = rate >= threshold
         passed = predicted == should
@@ -460,6 +475,11 @@ def run_single_query(
 
     Returns a dict with `skill_id`, `query`, `triggered`, `tools`,
     `cost_usd`, `auth_mode`, and `elapsed_s`.
+
+    Raises `HarnessError` when the subprocess exits nonzero on a run that
+    never triggered, since that case must never be silently scored as a
+    clean non-trigger -- see "Dispatch failures" in scripts/evals/README.md
+    for the full rationale.
     """
     run_id = uuid.uuid4().hex[:12]
     dirs = allocate_run_dirs(prefix=f"trigeval-{run_id}-")
@@ -504,12 +524,11 @@ def run_single_query(
         )
 
         stream_lines: list[str] = []
-        triggered = False
-        tools_seen: list[str] = []
+        scanner = TriggerScanner(skill_id)
         try:
             assert proc.stdout is not None
             while True:
-                if timeout is not None and (time.monotonic() - start) > timeout:
+                if (time.monotonic() - start) > timeout:
                     raise HarnessError(f"run_single_query exceeded --timeout ({timeout}s): {query!r}")
                 line = proc.stdout.readline()
                 if line == "" and proc.poll() is not None:
@@ -517,8 +536,7 @@ def run_single_query(
                 if not line:
                     continue
                 stream_lines.append(line)
-                triggered, tools_seen = detect_trigger(stream_lines, skill_id)
-                if triggered:
+                if scanner.feed(line):
                     break
         finally:
             if proc.poll() is None:
@@ -528,6 +546,21 @@ def run_single_query(
                 except subprocess.TimeoutExpired:
                     proc.kill()
                     proc.wait(timeout=5)
+
+        triggered = scanner.triggered
+        tools_seen = scanner.tools
+        if not triggered and proc.returncode:
+            stderr_text = ""
+            if proc.stderr is not None:
+                try:
+                    stderr_text = proc.stderr.read() or ""
+                except (OSError, ValueError):
+                    stderr_text = ""
+            stderr_tail = stderr_text[-_STDERR_TAIL_CHARS:]
+            raise HarnessError(
+                f"claude subprocess exited {proc.returncode} without triggering a skill "
+                f"call (query={query!r}); stderr tail:\n{stderr_tail}"
+            )
 
         cost = 0.0
         for raw in stream_lines:
@@ -556,29 +589,23 @@ def run_single_query(
 # --------------------------------------------------------------------------
 
 
-def _load_eval_set(path: Path) -> list[dict]:
+def _load_json_records(path: Path, flag: str, required_keys: tuple[str, str], shape: str) -> list[dict]:
+    """Loads and validates a `--eval-set`/`--candidates`-shaped JSON file: a
+    non-empty JSON array of objects, each carrying both of `required_keys`.
+    `flag` (e.g. `"--eval-set"`) and `shape` (e.g. `"query objects"`) drive
+    the two error messages, which stay per-flag verbatim across both call
+    sites.
+    """
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise HarnessError(f"could not read --eval-set {path}: {exc}") from exc
+        raise HarnessError(f"could not read {flag} {path}: {exc}") from exc
     if not isinstance(data, list) or not data:
-        raise HarnessError(f"--eval-set must be a non-empty JSON array of query objects: {path}")
+        raise HarnessError(f"{flag} must be a non-empty JSON array of {shape}: {path}")
+    key_a, key_b = required_keys
     for item in data:
-        if "query" not in item or "should_trigger" not in item:
-            raise HarnessError(f"--eval-set item missing 'query' or 'should_trigger': {item!r}")
-    return data
-
-
-def _load_candidates(path: Path) -> list[dict]:
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise HarnessError(f"could not read --candidates {path}: {exc}") from exc
-    if not isinstance(data, list) or not data:
-        raise HarnessError(f"--candidates must be a non-empty JSON array of {{name, description}}: {path}")
-    for item in data:
-        if "name" not in item or "description" not in item:
-            raise HarnessError(f"--candidates item missing 'name' or 'description': {item!r}")
+        if key_a not in item or key_b not in item:
+            raise HarnessError(f"{flag} item missing '{key_a}' or '{key_b}': {item!r}")
     return data
 
 
@@ -621,8 +648,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         assert_workspace_grounded(args.workspace)
-        eval_set = _load_eval_set(args.eval_set)
-        candidates = _load_candidates(args.candidates)
+        eval_set = _load_json_records(
+            args.eval_set, "--eval-set", ("query", "should_trigger"), "query objects"
+        )
+        candidates = _load_json_records(
+            args.candidates, "--candidates", ("name", "description"), "{name, description}"
+        )
 
         auth_mode = detect_auth_mode()
         if args.max_cost is not None and auth_mode != "api_key":
@@ -657,8 +688,6 @@ def main(argv: list[str] | None = None) -> int:
             "candidates": all_results,
         }
         results_path.write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
-
-    from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
     num_workers = max(1, args.num_workers)
 
@@ -717,8 +746,15 @@ def main(argv: list[str] | None = None) -> int:
                     try:
                         result = future.result()
                     except Exception as exc:  # noqa: BLE001 -- surfaced as a per-run failure, not a crash
+                        # See "Dispatch failures" in scripts/evals/README.md
+                        # for the full rationale.
                         print(f"ERROR  run failed for {name!r} / {item['query']!r}: {exc}", file=sys.stderr)
-                        result = {"triggered": False, "cost_usd": 0.0, "query": item["query"]}
+                        partial = True
+                        all_results[name].setdefault("errors", []).append(
+                            {"split": split_name, "query": item["query"], "error": str(exc)}
+                        )
+                        _write_results()
+                        continue
 
                     total_cost += result.get("cost_usd", 0.0) or 0.0
                     key = (split_name, item["query"])
@@ -748,21 +784,18 @@ def main(argv: list[str] | None = None) -> int:
                                 cancelled += 1
                                 del pending[f]
                         still_running = len(pending)
+                        prefix = (
+                            f"ERROR  --max-cost ${args.max_cost:.2f} exceeded (total ${total_cost:.2f}) "
+                            f"during candidate {name!r}: cancelled {cancelled} not-yet-started dispatch(es); "
+                        )
                         if still_running:
-                            print(
-                                f"ERROR  --max-cost ${args.max_cost:.2f} exceeded (total ${total_cost:.2f}) "
-                                f"during candidate {name!r}: cancelled {cancelled} not-yet-started "
-                                f"dispatch(es); {still_running} already-running dispatch(es) will still "
-                                "complete and their cost is still counted",
-                                file=sys.stderr,
+                            suffix = (
+                                f"{still_running} already-running dispatch(es) will still complete and "
+                                "their cost is still counted"
                             )
                         else:
-                            print(
-                                f"ERROR  --max-cost ${args.max_cost:.2f} exceeded (total ${total_cost:.2f}) "
-                                f"during candidate {name!r}: cancelled {cancelled} not-yet-started "
-                                "dispatch(es); no dispatches were still running",
-                                file=sys.stderr,
-                            )
+                            suffix = "no dispatches were still running"
+                        print(prefix + suffix, file=sys.stderr)
                         _write_results()
 
                 if not budget_exceeded:
@@ -771,7 +804,6 @@ def main(argv: list[str] | None = None) -> int:
                             break
 
         candidate_results = list(per_query_counts.values())
-        all_results[name]["results"] = candidate_results
 
         for split_name in ("train", "test"):
             split_results = [r for r in candidate_results if r["split"] == split_name]
@@ -787,11 +819,15 @@ def main(argv: list[str] | None = None) -> int:
         if budget_exceeded:
             break
 
-    _write_results()
-
     print(f"total cost: ${total_cost:.2f} (auth: {auth_mode})", file=sys.stderr)
-    if partial:
+    if budget_exceeded:
         print("WARNING  run stopped early on --max-cost; results.json is partial", file=sys.stderr)
+    error_count = sum(len(candidate.get("errors", [])) for candidate in all_results.values())
+    if error_count:
+        print(
+            f"WARNING  {error_count} dispatch error(s) occurred; results.json is partial",
+            file=sys.stderr,
+        )
 
     return 0
 
