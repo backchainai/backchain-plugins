@@ -25,7 +25,8 @@ engram/evals/.venv/
 engram/evals/.env
 diogenes/evals/.venv/
 diogenes/evals/.env
-diogenes/evals/__pycache__/
+__pycache__/
+*.py[cod]
 
 # Local git worktrees (not tracked)
 .worktrees/
